@@ -8,6 +8,8 @@ using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Windows.Threading;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace Inventory_Management_App
 {
@@ -25,11 +27,21 @@ namespace Inventory_Management_App
 
         private int CurrentAmount = DEFAULT_CURRENT_AMOUNT; // 現在の数量を保持する変数
 
+        // 時刻
+        private DispatcherTimer timer;
+
         public InventoryQuantityForm()
         {
             InitializeComponent();
             // 初期値を設定,数値→文字形式に変換
-            textBox1.Text = DEFAULT_CURRENT_AMOUNT.ToString(); 
+            textBox1.Text = DEFAULT_CURRENT_AMOUNT.ToString();
+
+
+            // タイマーの設定
+            timer = new DispatcherTimer();
+            timer.Interval = TimeSpan.FromSeconds(1);
+            timer.Tick += Timer_Tick;
+            timer.Start();
 
             // button1（+ボタン）のイベント設定
             button1.Click += PlusButton_Click;
@@ -107,9 +119,13 @@ namespace Inventory_Management_App
         {             
             // 3桁区切りのカンマ付きで表示
             textBox1.Text = CurrentAmount.ToString("N0");
-        }   
+        }
 
-
+        // タイマー表示
+        private void Timer_Tick(object sender, EventArgs e)
+        {
+            label2.Text = DateTime.Now.ToString("HH:mm:ss");
+        }
 
     }
 }
