@@ -1,6 +1,6 @@
 ﻿namespace Inventory_Management_App
 {
-    partial class Form1
+    partial class InventoryQuantityForm
     {
         /// <summary>
         /// 必要なデザイナー変数です。

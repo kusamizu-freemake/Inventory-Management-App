@@ -11,25 +11,25 @@ using System.Windows.Forms;
 
 namespace Inventory_Management_App
 {
-    public partial class Form1 : Form
+    public partial class InventoryQuantityForm : Form
     {
 
         // 定数の設定
         // 最大値の設定
-        private const int MaxCurrentamount = 9999;
+        private const int MAX_CURRENT_AMOUNT = 9999;
         // 最小値の設定
-        private const int MinCurrentamount = 0;
+        private const int MIN_CURRENT_AMOUNT = 0;
         // デフォルト値の設定
-        private const int DefaultCurrentamount = 0;
+        private const int DEFAULT_CURRENT_AMOUNT = 0;
 
 
-        private int Currentamount = DefaultCurrentamount; // 現在の数量を保持する変数
+        private int CurrentAmount = DEFAULT_CURRENT_AMOUNT; // 現在の数量を保持する変数
 
-        public Form1()
+        public InventoryQuantityForm()
         {
             InitializeComponent();
             // 初期値を設定,数値→文字形式に変換
-            textBox1.Text = DefaultCurrentamount.ToString(); 
+            textBox1.Text = DEFAULT_CURRENT_AMOUNT.ToString(); 
 
             // button1（+ボタン）のイベント設定
             button1.Click += PlusButton_Click;
@@ -49,10 +49,10 @@ namespace Inventory_Management_App
         private void PlusButton_Click(object sender, EventArgs e)
         {
             // 数量を1ずつ増やす、最大値は9999
-            if (Currentamount < MaxCurrentamount)
+            if (CurrentAmount < MAX_CURRENT_AMOUNT)
             {
-                Currentamount++;
-                textBox1.Text = Currentamount.ToString(); // 変換
+                CurrentAmount++;
+                textBox1.Text = CurrentAmount.ToString(); // 変換
                 CommaValue();
             }
         }
@@ -62,10 +62,10 @@ namespace Inventory_Management_App
         {
             // 数量を1ずつ減らす、最小値は0（負の値にはならない）
             
-            if (Currentamount > MinCurrentamount)
+            if (CurrentAmount > MIN_CURRENT_AMOUNT)
             {
-                Currentamount--;
-                textBox1.Text = Currentamount.ToString(); // 変換
+                CurrentAmount--;
+                textBox1.Text = CurrentAmount.ToString(); // 変換
                 CommaValue();
             }
 
@@ -75,29 +75,29 @@ namespace Inventory_Management_App
         private void TextBox1_Leave(object sender, EventArgs e)
         {
             // カンマを除去して数値のみを取得
-            string inputText = textBox1.Text.Replace(",", "");
+            string InputText = textBox1.Text.Replace(",", "");
 
             // 数値に変換できるか確認
-            if (int.TryParse(inputText, out int inputAmount))
+            if (int.TryParse(InputText, out int InputAmount))
             {
                 // 0から9999の範囲に制限
-                if (inputAmount < MinCurrentamount)
+                if (InputAmount < MIN_CURRENT_AMOUNT)
                 {
-                    Currentamount = MinCurrentamount;
+                    CurrentAmount = MIN_CURRENT_AMOUNT;
                 }
-                else if (inputAmount > MaxCurrentamount)
+                else if (InputAmount > MAX_CURRENT_AMOUNT)
                 {
-                    Currentamount = MaxCurrentamount;
+                    CurrentAmount = MAX_CURRENT_AMOUNT;
                 }
                 else
                 {
-                    Currentamount = inputAmount;
+                    CurrentAmount = InputAmount;
                 }
             }
             else
             {
                 // 数値に変換できない場合は0にリセット
-                Currentamount = MinCurrentamount;
+                CurrentAmount = MIN_CURRENT_AMOUNT;
             }   
             // テキストボックスに現在の数量を表示（カンマ付き）
             CommaValue();
@@ -106,7 +106,7 @@ namespace Inventory_Management_App
         private void CommaValue()
         {             
             // 3桁区切りのカンマ付きで表示
-            textBox1.Text = Currentamount.ToString("N0");
+            textBox1.Text = CurrentAmount.ToString("N0");
         }   
 
 
