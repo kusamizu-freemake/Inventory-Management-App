@@ -13,13 +13,23 @@ namespace Inventory_Management_App
 {
     public partial class Form1 : Form
     {
-        private int Currentamount = 0; // 現在の数量を保持する変数
+
+        // 定数の設定
+        // 最大値の設定
+        private const int MaxCurrentamount = 9999;
+        // 最小値の設定
+        private const int MinCurrentamount = 0;
+        // デフォルト値の設定
+        private const int DefaultCurrentamount = 0;
+
+
+        private int Currentamount = DefaultCurrentamount; // 現在の数量を保持する変数
 
         public Form1()
         {
             InitializeComponent();
-            // 初期値を設定
-            textBox1.Text = "0"; 
+            // 初期値を設定,数値→文字形式に変換
+            textBox1.Text = DefaultCurrentamount.ToString(); 
 
             // button1（+ボタン）のイベント設定
             button1.Click += PlusButton_Click;
@@ -39,7 +49,7 @@ namespace Inventory_Management_App
         private void PlusButton_Click(object sender, EventArgs e)
         {
             // 数量を1ずつ増やす、最大値は9999
-            if (Currentamount < 9999)
+            if (Currentamount < MaxCurrentamount)
             {
                 Currentamount++;
                 textBox1.Text = Currentamount.ToString(); // 変換
@@ -51,7 +61,8 @@ namespace Inventory_Management_App
         private void MinusButton_Click(object sender, EventArgs e)
         {
             // 数量を1ずつ減らす、最小値は0（負の値にはならない）
-            if (Currentamount > 0)
+            
+            if (Currentamount > MinCurrentamount)
             {
                 Currentamount--;
                 textBox1.Text = Currentamount.ToString(); // 変換
@@ -70,13 +81,13 @@ namespace Inventory_Management_App
             if (int.TryParse(inputText, out int inputAmount))
             {
                 // 0から9999の範囲に制限
-                if (inputAmount < 0)
+                if (inputAmount < MinCurrentamount)
                 {
-                    Currentamount = 0;
+                    Currentamount = MinCurrentamount;
                 }
-                else if (inputAmount > 9999)
+                else if (inputAmount > MaxCurrentamount)
                 {
-                    Currentamount = 9999;
+                    Currentamount = MaxCurrentamount;
                 }
                 else
                 {
@@ -86,7 +97,7 @@ namespace Inventory_Management_App
             else
             {
                 // 数値に変換できない場合は0にリセット
-                Currentamount = 0;
+                Currentamount = MinCurrentamount;
             }   
             // テキストボックスに現在の数量を表示（カンマ付き）
             CommaValue();
