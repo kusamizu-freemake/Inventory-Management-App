@@ -37,10 +37,15 @@ namespace Inventory_Management_App
             textBox1.Text = DEFAULT_CURRENT_AMOUNT.ToString();
 
 
-            // タイマーの設定
+            // タイマのインスタンスを生成
             timer = new DispatcherTimer();
+            // 1秒ごとにイベントを発生させます。
             timer.Interval = TimeSpan.FromSeconds(1);
+            // タイマーのTickイベントにTimer_Tickメソッドを関連付け
+            // timer.Tick:イベント
+            // Timer_Tick:メソッド
             timer.Tick += Timer_Tick;
+            // timerをスタートさせます。
             timer.Start();
 
             // button1（+ボタン）のイベント設定
