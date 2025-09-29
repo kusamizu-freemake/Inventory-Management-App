@@ -60,6 +60,9 @@ namespace Inventory_Management_App
             // 3桁区切りのカンマ付きで表示
             CommaValue();
 
+            //
+             
+
         }
 
         // +ボタンがクリックされたときの処理
