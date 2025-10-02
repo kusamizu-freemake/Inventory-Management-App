@@ -160,7 +160,9 @@ namespace Inventory_Management_App
             // 位置とサイズを明示的に指定
             InventoryDataGridView.Location = new Point(20, 150);
             InventoryDataGridView.Size = new Size(650, 250);
-
+            InventoryDataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill; // Grid幅に列を合わせる
+            InventoryDataGridView.RowHeadersVisible = false; // 左端の項目列を削除
+            InventoryDataGridView.AllowUserToAddRows = false; // 行の自動追加をオフ
 
             // DataGridViewの列設定
             InventoryDataGridView.Columns.Clear();
@@ -226,7 +228,7 @@ namespace Inventory_Management_App
             // チェックボックスがクリックされた場合
             else if (e.ColumnIndex == COLUMN_INDEX_CHECKBOX)
             {
-                InventoryDataGridView.EndEdit();
+                InventoryDataGridView.EndEdit(); // チェックボックスの状態を確定(編集モードを終了)
                 UpdateRowBackgroundColors();
             }
         }
@@ -246,17 +248,19 @@ namespace Inventory_Management_App
         // 在庫追加ボタン
         private void AddButton_Click(object sender, EventArgs e)
         {
-            // チェックボックス列の追加
-            object CheckBoxValue = true;
+            // チェックボックス列の追加(自動でチェックOFF)
+            object CheckBoxValue = false;
             // 現在時刻を取得
             string CurrentTime = DateTime.Now.ToString("HH:mm:ss");
             // 数量を取得
             string Quantity = CurrentAmount.ToString("N0"); // カンマ付き
             // コメントを取得
             string Comment = textBox2.Text;
+            // 削除を取得
+            string Delete = "";
 
             // DataGridViewに新しい行を追加
-            InventoryDataGridView.Rows.Add(CheckBoxValue, CurrentTime, Quantity, Comment, "削除");
+            InventoryDataGridView.Rows.Add(CheckBoxValue, CurrentTime, Quantity, Comment, Delete); 
 
             // 行の背景色を更新
             UpdateRowBackgroundColors();
