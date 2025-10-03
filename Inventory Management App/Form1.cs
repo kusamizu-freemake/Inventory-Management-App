@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Data.Common;
 using System.Drawing;
 using System.Linq;
 using System.Reflection.Emit;
@@ -24,11 +25,24 @@ namespace Inventory_Management_App
         // デフォルト値の設定
         private const int DEFAULT_CURRENT_AMOUNT = 0;
 
+        // DataGridView列のインデックス定数
+        private const int COLUMN_INDEX_CHECKBOX = 0;
+        private const int COLUMN_INDEX_TIME = 1;
+        private const int COLUMN_INDEX_QUANTITY = 2;
+        private const int COLUMN_INDEX_COMMENT = 3;
+        private const int COLUMN_INDEX_DELETE = 4;
 
-        private int CurrentAmount = DEFAULT_CURRENT_AMOUNT; // 現在の数量を保持する変数
+        // 現在の数量を保持する変数
+        private int CurrentAmount = DEFAULT_CURRENT_AMOUNT; 
 
         // 時刻
         private DispatcherTimer timer;
+
+        // 在庫リスト表示用DataGridView
+        private DataGridView InventoryDataGridView;
+
+        // 選択された行
+        //private DataGridViewRow DataGridViewRow;
 
         public InventoryQuantityForm()
         {
@@ -59,6 +73,12 @@ namespace Inventory_Management_App
 
             // 3桁区切りのカンマ付きで表示
             CommaValue();
+
+            // button3（追加ボタン）のイベント設定
+            button3.Click += AddButton_Click;
+
+            // リストビューの設定
+            SetupInventoryDataGridView();
 
         }
 
@@ -132,5 +152,148 @@ namespace Inventory_Management_App
             label2.Text = DateTime.Now.ToString("HH:mm:ss");
         }
 
+        // 
+        private void SetupInventoryDataGridView()
+        {
+            InventoryDataGridView = new DataGridView();
+
+            // 位置とサイズを明示的に指定
+            InventoryDataGridView.Location = new Point(20, 150);
+            InventoryDataGridView.Size = new Size(650, 250);
+            InventoryDataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill; // Grid幅に列を合わせる
+            InventoryDataGridView.RowHeadersVisible = false; // 左端の項目列を削除
+            InventoryDataGridView.AllowUserToAddRows = false; // 行の自動追加をオフ
+
+            // DataGridViewの列設定
+            InventoryDataGridView.Columns.Clear();
+
+            // チェックボックス列
+            DataGridViewCheckBoxColumn checkBoxColumn = new DataGridViewCheckBoxColumn();
+            checkBoxColumn.HeaderText = "";
+            checkBoxColumn.Name = "Check";
+            checkBoxColumn.Width = 40;
+            checkBoxColumn.ReadOnly = false;
+            InventoryDataGridView.Columns.Add(checkBoxColumn);
+
+            // 時刻列
+            DataGridViewTextBoxColumn timeColumn = new DataGridViewTextBoxColumn();
+            timeColumn.HeaderText = "時刻";
+            timeColumn.Name = "Time";
+            timeColumn.Width = 100;
+            timeColumn.ReadOnly = true;
+            InventoryDataGridView.Columns.Add(timeColumn);
+
+            // 数量列
+            DataGridViewTextBoxColumn quantityColumn = new DataGridViewTextBoxColumn();
+            quantityColumn.HeaderText = "数量";
+            quantityColumn.Name = "Quantity";
+            quantityColumn.Width = 100;
+            quantityColumn.ReadOnly = true;
+            quantityColumn.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            InventoryDataGridView.Columns.Add(quantityColumn);
+
+            // コメント列
+            DataGridViewTextBoxColumn commentColumn = new DataGridViewTextBoxColumn();
+            commentColumn.HeaderText = "コメント";
+            commentColumn.Name = "Comment";
+            commentColumn.Width = 250;
+            commentColumn.ReadOnly = true;
+            InventoryDataGridView.Columns.Add(commentColumn);
+
+            // 削除ボタン列
+            DataGridViewButtonColumn deleteColumn = new DataGridViewButtonColumn();
+            deleteColumn.HeaderText = "削除";
+            deleteColumn.Name = "Delete";
+            deleteColumn.Text = "削除";
+            deleteColumn.UseColumnTextForButtonValue = true;
+            deleteColumn.Width = 100;
+            InventoryDataGridView.Columns.Add(deleteColumn);
+
+            // イベント登録
+            InventoryDataGridView.CellContentClick += InventoryDataGridView_CellContentClick;
+
+            // フォームに追加
+            this.Controls.Add(InventoryDataGridView);
+        }
+
+        // ListViewのクリックイベント
+        private void InventoryDataGridView_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            
+            // 削除ボタンがクリックされた場合
+            if (e.ColumnIndex == COLUMN_INDEX_DELETE)
+            {
+                DeleteRow(e.RowIndex);
+            }
+            // チェックボックスがクリックされた場合
+            else if (e.ColumnIndex == COLUMN_INDEX_CHECKBOX)
+            {
+                InventoryDataGridView.EndEdit(); // チェックボックスの状態を確定(編集モードを終了)
+                UpdateRowBackgroundColors();
+            }
+        }
+
+        // 削除メソッドを追加
+        private void DeleteRow(int RowIndex)
+        {
+            // 削除確認ダイアログを表示
+            var result = MessageBox.Show("この行を削除しますか？", "確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (result == DialogResult.Yes)
+            {
+                InventoryDataGridView.Rows.RemoveAt(RowIndex);
+                UpdateRowBackgroundColors();
+            }
+        }
+
+        // 在庫追加ボタン
+        private void AddButton_Click(object sender, EventArgs e)
+        {
+            // チェックボックス列の追加(自動でチェックOFF)
+            bool CheckBoxValue = false;
+            // 現在時刻を取得
+            string CurrentTime = DateTime.Now.ToString("HH:mm:ss");
+            // 数量を取得
+            string Quantity = CurrentAmount.ToString("N0"); // カンマ付き
+            // コメントを取得
+            string Comment = textBox2.Text;
+            // 削除を取得
+            string Delete = "";
+
+            // DataGridViewに新しい行を追加
+            InventoryDataGridView.Rows.Add(CheckBoxValue, CurrentTime, Quantity, Comment, Delete); 
+
+            // 行の背景色を更新
+            UpdateRowBackgroundColors();
+        }
+
+        // 行の背景色を更新（選択済み、奇数行、偶数行で色分け）
+        private void UpdateRowBackgroundColors()
+        {
+            for (int i = 0; i < InventoryDataGridView.Rows.Count; i++)
+            {
+                DataGridViewRow Row = InventoryDataGridView.Rows[i];
+
+                // チェックボックスの値を取得
+                var cell = Row.Cells[COLUMN_INDEX_CHECKBOX].Value;
+                bool IsChecked = cell is bool CheckBoxcellValue && CheckBoxcellValue;
+
+                // 選択済み（行が選択されている場合）
+                if (IsChecked)
+                {
+                    Row.DefaultCellStyle.BackColor = Color.LightGreen;  // 緑色
+                }
+                // 偶数行（0, 2, 4...）
+                else if (i % 2 == 0)
+                {
+                    Row.DefaultCellStyle.BackColor = Color.White;  // 白色（背景色なし）
+                }
+                // 奇数行（1, 3, 5...）
+                else
+                {
+                    Row.DefaultCellStyle.BackColor = Color.LightBlue;  // 青色
+                }
+            }
+        }
     }
 }
+
