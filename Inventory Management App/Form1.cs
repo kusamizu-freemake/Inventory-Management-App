@@ -42,7 +42,7 @@ namespace Inventory_Management_App
         private DataGridView InventoryDataGridView;
 
         // 選択された行
-        private DataGridViewRow DataGridViewRow;
+        //private DataGridViewRow DataGridViewRow;
 
         public InventoryQuantityForm()
         {
@@ -249,7 +249,7 @@ namespace Inventory_Management_App
         private void AddButton_Click(object sender, EventArgs e)
         {
             // チェックボックス列の追加(自動でチェックOFF)
-            object CheckBoxValue = false;
+            bool CheckBoxValue = false;
             // 現在時刻を取得
             string CurrentTime = DateTime.Now.ToString("HH:mm:ss");
             // 数量を取得
@@ -274,8 +274,8 @@ namespace Inventory_Management_App
                 DataGridViewRow Row = InventoryDataGridView.Rows[i];
 
                 // チェックボックスの値を取得
-                object cellValue = Row.Cells[COLUMN_INDEX_CHECKBOX].Value;
-                bool IsChecked = cellValue is bool checkedValue && checkedValue;
+                var cell = Row.Cells[COLUMN_INDEX_CHECKBOX].Value;
+                bool IsChecked = cell is bool CheckBoxcellValue && CheckBoxcellValue;
 
                 // 選択済み（行が選択されている場合）
                 if (IsChecked)
