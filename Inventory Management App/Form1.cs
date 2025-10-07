@@ -41,9 +41,6 @@ namespace Inventory_Management_App
         // 在庫リスト表示用DataGridView
         private DataGridView InventoryDataGridView;
 
-        // 合計数量
-        private Button TotalQuantity;
-
         public InventoryQuantityForm()
         {
             InitializeComponent();
@@ -77,11 +74,11 @@ namespace Inventory_Management_App
             // button3（追加ボタン）のイベント設定
             button3.Click += AddButton_Click;
 
+            // 合計数量ボタンの設定
+            button4.Click += TotalQuantity_Click;
+
             // リストビューの設定
             SetupInventoryDataGridView();
-
-            // 合計数量ボタンの設定
-            SetupButton();
 
         }
 
@@ -277,11 +274,11 @@ namespace Inventory_Management_App
                 DataGridViewRow Row = InventoryDataGridView.Rows[i];
 
                 // チェックボックスの値を取得
-                var cell = Row.Cells[COLUMN_INDEX_CHECKBOX].Value;
-                bool IsChecked = cell is bool CheckBoxcellValue && CheckBoxcellValue;
+                var CheckBoxCellValue = Row.Cells[COLUMN_INDEX_CHECKBOX].Value;
+                bool CheckedItems = CheckBoxCellValue is bool CheckBoxcellValue && CheckBoxcellValue;
 
                 // 選択済み（行が選択されている場合）
-                if (IsChecked)
+                if (CheckedItems)
                 {
                     Row.DefaultCellStyle.BackColor = Color.LightGreen;  // 緑色
                 }
@@ -298,39 +295,28 @@ namespace Inventory_Management_App
             }
         }
 
-        // 合計数量ボタンの設定
-        private void SetupButton()
-        {
-            // 合計数量ボタンの設定
-            TotalQuantity = new Button();
-            TotalQuantity.Text = "選択された合計数量";
-            TotalQuantity.Size = new Size(100, 30);
-            TotalQuantity.Location = new Point(20, 420);
-            TotalQuantity.Click += TotalQuantity_Click;
-            this.Controls.Add(TotalQuantity);
-        }
 
         // 合計数量ボタンがクリックされたときの処理
         private void TotalQuantity_Click(object sender, EventArgs e)
         {
-            int sum = 0;
+            int TotalQuantitySelected = 0;
             foreach (DataGridViewRow row in InventoryDataGridView.Rows)
             {
                 // チェックボックスがオンの行のみ処理
-                var cell = row.Cells[COLUMN_INDEX_CHECKBOX].Value;
-                bool IsChecked = cell is bool CheckBoxcellValue && CheckBoxcellValue;
-                if (IsChecked)
+                var CheckBoxCellValue = row.Cells[COLUMN_INDEX_CHECKBOX].Value;
+                bool CheckedQuantity = CheckBoxCellValue is bool CheckBoxcellValue && CheckBoxcellValue;
+                if (CheckedQuantity)
                 {
                     // 数量列の値を取得し、カンマを除去して数値に変換
-                    string quantityText = row.Cells[COLUMN_INDEX_QUANTITY].Value.ToString().Replace(",", "");
-                    if (int.TryParse(quantityText, out int quantity))
+                    string QuantityText = row.Cells[COLUMN_INDEX_QUANTITY].Value.ToString().Replace(",", "");
+                    if (int.TryParse(QuantityText, out int SelectQuantity))
                     {
-                        sum += quantity;
+                        TotalQuantitySelected += SelectQuantity;
                     }
                 }
             }
             // 合計数量をメッセージボックスで表示
-            MessageBox.Show($"選択された合計数量: {sum:N0}", "合計数量", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show($"選択された合計数量: {TotalQuantitySelected:N0}", "合計数量", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }
