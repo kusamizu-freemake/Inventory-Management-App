@@ -275,10 +275,8 @@ namespace Inventory_Management_App
 
                 // チェックボックスの値を取得
                 // 合計計算に含めるかどうかを示すチェックボックスの値を取得
-                var SumQuantityChecks = Row.Cells[COLUMN_INDEX_CHECKBOX].Value;
-                // この行の数量を合計計算に含めるかどうかを判定
-                bool IncludedInTotal = SumQuantityChecks is bool CheckBoxcellValue && CheckBoxcellValue;
-
+                bool IncludedInTotal = Row.Cells[COLUMN_INDEX_CHECKBOX].Value is bool CheckBoxcellValue && CheckBoxcellValue;
+                
                 // 選択済み（合計計算に含まれる行）
                 if (IncludedInTotal)
                 {
@@ -306,11 +304,9 @@ namespace Inventory_Management_App
 
             foreach (DataGridViewRow row in InventoryDataGridView.Rows)
             {
-                // 合計計算に含めるかを制御するチェックボックスの値を取得
-                var IncludeInTotalCheckBox = row.Cells[COLUMN_INDEX_CHECKBOX].Value;
                 // この行を合計計算に含めるかどうかを判定
-                bool IncludedInTotal = IncludeInTotalCheckBox is bool CheckBoxcellValue && CheckBoxcellValue;
-                
+                bool IncludedInTotal = row.Cells[COLUMN_INDEX_CHECKBOX].Value is bool CheckBoxcellValue && CheckBoxcellValue;
+
                 if (IncludedInTotal)
                 {
                     // 数量列の値を取得し、カンマを除去して数値に変換
