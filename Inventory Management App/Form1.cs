@@ -80,6 +80,9 @@ namespace Inventory_Management_App
             // リストビューの設定
             SetupInventoryDataGridView();
 
+            // 合計数量ボタンの設定
+            button5.Click += ClearButton_Click;
+
         }
 
         // +ボタンがクリックされたときの処理
@@ -320,6 +323,18 @@ namespace Inventory_Management_App
             }
             // 合計数量をメッセージボックスで表示
             MessageBox.Show($"選択された合計数量: {TotalOfCheckedRows:N0}", "合計数量", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void ClearButton_Click(object sender, EventArgs e)
+        {
+            // 削除確認ダイアログを表示
+            var result = MessageBox.Show("データをクリアしますか？", "確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            // 「はい」が選択された場合のみ削除
+            if (result == DialogResult.Yes)
+            {
+                // DataGridViewの全行を削除
+                InventoryDataGridView.Rows.Clear();
+            }
         }
     }
 }
