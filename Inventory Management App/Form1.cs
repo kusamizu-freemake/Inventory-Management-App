@@ -275,12 +275,12 @@ namespace Inventory_Management_App
 
                 // チェックボックスの値を取得
                 // 合計計算に含めるかどうかを示すチェックボックスの値を取得
-                var CheckBoxCellValue = Row.Cells[COLUMN_INDEX_CHECKBOX].Value;
+                var IncludeInTotalCheckBox = Row.Cells[COLUMN_INDEX_CHECKBOX].Value;
                 // この行の数量を合計計算に含めるかどうかを判定
-                bool CheckBoxItems = CheckBoxCellValue is bool CheckBoxcellValue && CheckBoxcellValue;
+                bool IsIncludedInTotal = IncludeInTotalCheckBox is bool CheckBoxcellValue && CheckBoxcellValue;
 
                 // 選択済み（合計計算に含まれる行）
-                if (CheckBoxItems)
+                if (IsIncludedInTotal)
                 {
                     Row.DefaultCellStyle.BackColor = Color.LightGreen;  // 緑色
                 }
@@ -301,24 +301,29 @@ namespace Inventory_Management_App
         // 合計数量ボタンがクリックされたときの処理
         private void TotalQuantity_Click(object sender, EventArgs e)
         {
-            int TotalQuantitySelected = 0;
+            // チェックされた行の合計
+            int TotalOfCheckedRows = 0; 
+
             foreach (DataGridViewRow row in InventoryDataGridView.Rows)
             {
-                // チェックボックスがオンの行のみ処理
-                var CheckBoxCellValue = row.Cells[COLUMN_INDEX_CHECKBOX].Value;
-                bool CheckedQuantity = CheckBoxCellValue is bool CheckBoxcellValue && CheckBoxcellValue;
-                if (CheckedQuantity)
+                // 合計計算に含めるかを制御するチェックボックスの値を取得
+                var IncludeInTotalCheckBox = row.Cells[COLUMN_INDEX_CHECKBOX].Value;
+                // この行を合計計算に含めるかどうかを判定
+                bool IsIncludedInTotal = IncludeInTotalCheckBox is bool CheckBoxcellValue && CheckBoxcellValue;
+                
+                if (IsIncludedInTotal)
                 {
                     // 数量列の値を取得し、カンマを除去して数値に変換
                     string QuantityText = row.Cells[COLUMN_INDEX_QUANTITY].Value.ToString().Replace(",", "");
                     if (int.TryParse(QuantityText, out int SelectQuantity))
                     {
-                        TotalQuantitySelected += SelectQuantity;
+                        // この行の数量を合計に加算
+                        TotalOfCheckedRows += SelectQuantity;
                     }
                 }
             }
             // 合計数量をメッセージボックスで表示
-            MessageBox.Show($"選択された合計数量: {TotalQuantitySelected:N0}", "合計数量", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show($"選択された合計数量: {TotalOfCheckedRows:N0}", "合計数量", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }
