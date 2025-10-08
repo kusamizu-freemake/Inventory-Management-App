@@ -33,16 +33,13 @@ namespace Inventory_Management_App
         private const int COLUMN_INDEX_DELETE = 4;
 
         // 現在の数量を保持する変数
-        private int CurrentAmount = DEFAULT_CURRENT_AMOUNT; 
+        private int CurrentAmount = DEFAULT_CURRENT_AMOUNT;
 
         // 時刻
         private DispatcherTimer timer;
 
         // 在庫リスト表示用DataGridView
         private DataGridView InventoryDataGridView;
-
-        // 選択された行
-        //private DataGridViewRow DataGridViewRow;
 
         public InventoryQuantityForm()
         {
@@ -77,6 +74,9 @@ namespace Inventory_Management_App
             // button3（追加ボタン）のイベント設定
             button3.Click += AddButton_Click;
 
+            // 合計数量ボタンの設定
+            button4.Click += TotalQuantity_Click;
+
             // リストビューの設定
             SetupInventoryDataGridView();
 
@@ -98,7 +98,7 @@ namespace Inventory_Management_App
         private void MinusButton_Click(object sender, EventArgs e)
         {
             // 数量を1ずつ減らす、最小値は0（負の値にはならない）
-            
+
             if (CurrentAmount > MIN_CURRENT_AMOUNT)
             {
                 CurrentAmount--;
@@ -135,13 +135,13 @@ namespace Inventory_Management_App
             {
                 // 数値に変換できない場合は0にリセット
                 CurrentAmount = MIN_CURRENT_AMOUNT;
-            }   
+            }
             // テキストボックスに現在の数量を表示（カンマ付き）
             CommaValue();
         }
 
         private void CommaValue()
-        {             
+        {
             // 3桁区切りのカンマ付きで表示
             textBox1.Text = CurrentAmount.ToString("N0");
         }
@@ -152,7 +152,7 @@ namespace Inventory_Management_App
             label2.Text = DateTime.Now.ToString("HH:mm:ss");
         }
 
-        // 
+        // DataGridの設定
         private void SetupInventoryDataGridView()
         {
             InventoryDataGridView = new DataGridView();
@@ -219,7 +219,7 @@ namespace Inventory_Management_App
         // ListViewのクリックイベント
         private void InventoryDataGridView_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
-            
+
             // 削除ボタンがクリックされた場合
             if (e.ColumnIndex == COLUMN_INDEX_DELETE)
             {
@@ -260,7 +260,7 @@ namespace Inventory_Management_App
             string Delete = "";
 
             // DataGridViewに新しい行を追加
-            InventoryDataGridView.Rows.Add(CheckBoxValue, CurrentTime, Quantity, Comment, Delete); 
+            InventoryDataGridView.Rows.Add(CheckBoxValue, CurrentTime, Quantity, Comment, Delete);
 
             // 行の背景色を更新
             UpdateRowBackgroundColors();
@@ -274,11 +274,11 @@ namespace Inventory_Management_App
                 DataGridViewRow Row = InventoryDataGridView.Rows[i];
 
                 // チェックボックスの値を取得
-                var cell = Row.Cells[COLUMN_INDEX_CHECKBOX].Value;
-                bool IsChecked = cell is bool CheckBoxcellValue && CheckBoxcellValue;
-
-                // 選択済み（行が選択されている場合）
-                if (IsChecked)
+                // 合計計算に含めるかどうかを示すチェックボックスの値を取得
+                bool IncludedInTotal = Row.Cells[COLUMN_INDEX_CHECKBOX].Value is bool CheckBoxcellValue && CheckBoxcellValue;
+                
+                // 選択済み（合計計算に含まれる行）
+                if (IncludedInTotal)
                 {
                     Row.DefaultCellStyle.BackColor = Color.LightGreen;  // 緑色
                 }
@@ -293,6 +293,33 @@ namespace Inventory_Management_App
                     Row.DefaultCellStyle.BackColor = Color.LightBlue;  // 青色
                 }
             }
+        }
+
+
+        // 合計数量ボタンがクリックされたときの処理
+        private void TotalQuantity_Click(object sender, EventArgs e)
+        {
+            // チェックされた行の合計
+            int TotalOfCheckedRows = 0; 
+
+            foreach (DataGridViewRow row in InventoryDataGridView.Rows)
+            {
+                // この行を合計計算に含めるかどうかを判定
+                bool IncludedInTotal = row.Cells[COLUMN_INDEX_CHECKBOX].Value is bool CheckBoxcellValue && CheckBoxcellValue;
+
+                if (IncludedInTotal)
+                {
+                    // 数量列の値を取得し、カンマを除去して数値に変換
+                    string QuantityText = row.Cells[COLUMN_INDEX_QUANTITY].Value.ToString().Replace(",", "");
+                    if (int.TryParse(QuantityText, out int SelectQuantity))
+                    {
+                        // この行の数量を合計に加算
+                        TotalOfCheckedRows += SelectQuantity;
+                    }
+                }
+            }
+            // 合計数量をメッセージボックスで表示
+            MessageBox.Show($"選択された合計数量: {TotalOfCheckedRows:N0}", "合計数量", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }
