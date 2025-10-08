@@ -38,6 +38,7 @@ namespace Inventory_Management_App
             this.textBox2 = new System.Windows.Forms.TextBox();
             this.button3 = new System.Windows.Forms.Button();
             this.button4 = new System.Windows.Forms.Button();
+            this.button5 = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // label1
@@ -102,19 +103,28 @@ namespace Inventory_Management_App
             // 
             // button4
             // 
-            this.button4.Location = new System.Drawing.Point(12, 504);
+            this.button4.Location = new System.Drawing.Point(200, 504);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(173, 33);
             this.button4.TabIndex = 8;
             this.button4.Text = "選択された合計数量";
-            this.button4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter; // 中央揃え
             this.button4.UseVisualStyleBackColor = true;
+            // 
+            // button5
+            // 
+            this.button5.Location = new System.Drawing.Point(33, 504);
+            this.button5.Name = "button5";
+            this.button5.Size = new System.Drawing.Size(117, 33);
+            this.button5.TabIndex = 9;
+            this.button5.Text = "クリア";
+            this.button5.UseVisualStyleBackColor = true;
             // 
             // InventoryQuantityForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 656);
+            this.Controls.Add(this.button5);
             this.Controls.Add(this.button4);
             this.Controls.Add(this.button3);
             this.Controls.Add(this.textBox2);
@@ -140,6 +150,7 @@ namespace Inventory_Management_App
         private System.Windows.Forms.TextBox textBox2;
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.Button button4;
+        private System.Windows.Forms.Button button5;
     }
 }
 
