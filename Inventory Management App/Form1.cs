@@ -274,11 +274,13 @@ namespace Inventory_Management_App
                 DataGridViewRow Row = InventoryDataGridView.Rows[i];
 
                 // チェックボックスの値を取得
+                // 合計計算に含めるかどうかを示すチェックボックスの値を取得
                 var CheckBoxCellValue = Row.Cells[COLUMN_INDEX_CHECKBOX].Value;
-                bool CheckedItems = CheckBoxCellValue is bool CheckBoxcellValue && CheckBoxcellValue;
+                // この行の数量を合計計算に含めるかどうかを判定
+                bool CheckBoxItems = CheckBoxCellValue is bool CheckBoxcellValue && CheckBoxcellValue;
 
-                // 選択済み（行が選択されている場合）
-                if (CheckedItems)
+                // 選択済み（合計計算に含まれる行）
+                if (CheckBoxItems)
                 {
                     Row.DefaultCellStyle.BackColor = Color.LightGreen;  // 緑色
                 }
