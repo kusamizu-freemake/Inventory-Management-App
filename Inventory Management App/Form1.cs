@@ -1,9 +1,13 @@
-﻿using System;
+﻿using Microsoft.Data.Sqlite;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.Data.Common;
+using System.Data.SQLite;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Reflection.Emit;
 using System.Text;
@@ -41,9 +45,14 @@ namespace Inventory_Management_App
         // 在庫リスト表示用DataGridView
         private DataGridView InventoryDataGridView;
 
+        // データベース初期化
+        private string DbPath;
+        private string ConnectionString;
+
         public InventoryQuantityForm()
         {
             InitializeComponent();
+
             // 初期値を設定,数値→文字形式に変換
             textBox1.Text = DEFAULT_CURRENT_AMOUNT.ToString();
 
@@ -83,6 +92,92 @@ namespace Inventory_Management_App
             // 合計数量ボタンの設定
             button5.Click += ClearButton_Click;
 
+            // 更新ボタンの設定
+            button6.Click += UpdateButton_Click;
+
+            // データベース初期化
+            InitializeDatabase();
+
+            // DBからデータを読み込んで表示
+            LoadDataFromDatabase();
+
+        }
+
+        // データベース初期化
+        private void InitializeDatabase()
+        {
+            // データベースファイルのパス
+            DbPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "InventoryData.db"
+            );
+            ConnectionString = $"Data Source={DbPath};";
+
+            // データベースファイルが存在しない場合は作成
+            if (File.Exists(DbPath) == false)
+            {
+                // 空ファイルを作成
+                using (File.Create(DbPath)) { }
+            }
+
+            // テーブル作成
+            using (var Connectionn = new SqliteConnection(ConnectionString))
+            {
+                Connectionn.Open();
+                string CreateTableQuery = @"
+                    CREATE TABLE IF NOT EXISTS InventoryItems (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        IsChecked INTEGER NOT NULL DEFAULT 0,
+                        Time TEXT NOT NULL,
+                        Quantity INTEGER NOT NULL,
+                        Comment TEXT
+                    )";
+
+                using (var Command = new SqliteCommand(CreateTableQuery, Connectionn))
+                {
+                    Command.ExecuteNonQuery();
+                }
+            }
+        }
+        // データベースからデータを読み込む
+        private void LoadDataFromDatabase()
+        {
+            InventoryDataGridView.Rows.Clear();
+
+            using (var Connectionn = new SqliteConnection(ConnectionString))
+            {
+                // 接続開始
+                Connectionn.Open();
+                string Query = "SELECT * FROM InventoryItems ORDER BY Id";
+
+                using (var Command = new SqliteCommand(Query, Connectionn))
+                using (var Reader = Command.ExecuteReader())
+                {
+                    while (Reader.Read())
+                    {
+                        int Id = Reader.GetInt32(0);
+                        bool IsChecked = Reader.GetInt32(1) == 1;
+                        string Time = Reader.GetString(2);
+                        int Quantity = Reader.GetInt32(3);
+                        string Comment = Reader.IsDBNull(4) ? "" : Reader.GetString(4);
+
+                        // DataGridViewに行を追加
+                        int rowIndex = InventoryDataGridView.Rows.Add(
+                            IsChecked,
+                            Time,
+                            Quantity.ToString("N0"),
+                            Comment,
+                            ""
+                        );
+
+                        // 行のTagにIDを保存
+                        InventoryDataGridView.Rows[rowIndex].Tag = Id;
+                    }
+                }
+            }
+
+            // 背景色を更新
+            UpdateRowBackgroundColors();
         }
 
         // +ボタンがクリックされたときの処理
@@ -191,7 +286,7 @@ namespace Inventory_Management_App
             quantityColumn.HeaderText = "数量";
             quantityColumn.Name = "Quantity";
             quantityColumn.Width = 100;
-            quantityColumn.ReadOnly = true;
+            quantityColumn.ReadOnly = false; // 編集可能へ
             quantityColumn.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             InventoryDataGridView.Columns.Add(quantityColumn);
 
@@ -200,7 +295,7 @@ namespace Inventory_Management_App
             commentColumn.HeaderText = "コメント";
             commentColumn.Name = "Comment";
             commentColumn.Width = 250;
-            commentColumn.ReadOnly = true;
+            commentColumn.ReadOnly = false; // 編集可能へ
             InventoryDataGridView.Columns.Add(commentColumn);
 
             // 削除ボタン列
@@ -240,8 +335,8 @@ namespace Inventory_Management_App
         private void DeleteRow(int RowIndex)
         {
             // 削除確認ダイアログを表示
-            var result = MessageBox.Show("この行を削除しますか？", "確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            if (result == DialogResult.Yes)
+            var Result = MessageBox.Show("この行を削除しますか？", "確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (Result == DialogResult.Yes)
             {
                 InventoryDataGridView.Rows.RemoveAt(RowIndex);
                 UpdateRowBackgroundColors();
@@ -276,10 +371,9 @@ namespace Inventory_Management_App
             {
                 DataGridViewRow Row = InventoryDataGridView.Rows[i];
 
-                // チェックボックスの値を取得
                 // 合計計算に含めるかどうかを示すチェックボックスの値を取得
                 bool IncludedInTotal = Row.Cells[COLUMN_INDEX_CHECKBOX].Value is bool CheckBoxcellValue && CheckBoxcellValue;
-                
+
                 // 選択済み（合計計算に含まれる行）
                 if (IncludedInTotal)
                 {
@@ -303,7 +397,7 @@ namespace Inventory_Management_App
         private void TotalQuantity_Click(object sender, EventArgs e)
         {
             // チェックされた行の合計
-            int TotalOfCheckedRows = 0; 
+            int TotalOfCheckedRows = 0;
 
             foreach (DataGridViewRow row in InventoryDataGridView.Rows)
             {
@@ -325,15 +419,88 @@ namespace Inventory_Management_App
             MessageBox.Show($"選択された合計数量: {TotalOfCheckedRows:N0}", "合計数量", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
+        // クリアボタンがクリックされたときの処理
         private void ClearButton_Click(object sender, EventArgs e)
         {
             // 削除確認ダイアログを表示
-            var result = MessageBox.Show("データをクリアしますか？", "確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            var Result = MessageBox.Show("データをクリアしますか？", "確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            
             // 「はい」が選択された場合のみ削除
-            if (result == DialogResult.Yes)
+            if (Result == DialogResult.Yes)
             {
                 // DataGridViewの全行を削除
                 InventoryDataGridView.Rows.Clear();
+            }
+        }
+
+        // 更新ボタンがクリックされたときの処理(DBに登録）
+        private void UpdateButton_Click(object sender, EventArgs e)
+        {
+            var Result = MessageBox.Show("DataGridViewの全データをデータベースに保存しますか？", "保存確認",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (Result == DialogResult.Yes)
+            {
+                using (var Connectionn = new SqliteConnection(ConnectionString))
+                {
+                    // 接続開始
+                    Connectionn.Open();
+
+                    // トランザクション開始
+                    using (var Transaction = Connectionn.BeginTransaction())
+                    {
+                        // 既存データを全削除
+                        string DeleteQuery = "DELETE FROM InventoryItems";
+                        using (var DeleteCommand = new SqliteCommand(DeleteQuery, Connectionn, Transaction))
+                        {
+                            DeleteCommand.ExecuteNonQuery();
+                        }
+
+                        // DataGridViewの全データを挿入
+                        string InsertQuery = @"
+                                    INSERT INTO InventoryItems (IsChecked, Time, Quantity, Comment)
+                                    VALUES (@IsChecked, @Time, @Quantity, @Comment)";
+
+                        int SavedCount = 0;
+
+                        foreach (DataGridViewRow row in InventoryDataGridView.Rows)
+                        {
+                            // チェックボックスの値を取得
+                            bool IsChecked = row.Cells[COLUMN_INDEX_CHECKBOX].Value is bool checkValue && checkValue;
+
+                            // 時刻を取得
+                            string Time = row.Cells[COLUMN_INDEX_TIME].Value.ToString() ?? DateTime.Now.ToString("HH:mm:ss");
+
+                            // 数量を取得（カンマを除去して数値に変換）
+                            string QuantityText = row.Cells[COLUMN_INDEX_QUANTITY].Value.ToString()?.Replace(",", "") ;
+                            int Quantity = int.TryParse(QuantityText, out int qty) ? qty : 0;
+
+                            // コメントを取得
+                            string Comment = row.Cells[COLUMN_INDEX_COMMENT].Value.ToString();
+
+                            // データベースに挿入
+                            using (var insertCommand = new SqliteCommand(InsertQuery, Connectionn, Transaction))
+                            {
+                                insertCommand.Parameters.AddWithValue("@IsChecked", IsChecked ? 1 : 0);
+                                insertCommand.Parameters.AddWithValue("@Time", Time);
+                                insertCommand.Parameters.AddWithValue("@Quantity", Quantity);
+                                insertCommand.Parameters.AddWithValue("@Comment", Comment);
+
+                                insertCommand.ExecuteNonQuery();
+                                SavedCount++;
+                            }
+                        }
+
+                        // コミット
+                        Transaction.Commit();
+
+                        // データを再読み込み
+                        LoadDataFromDatabase();
+
+                        MessageBox.Show($"データベースに{SavedCount}件のデータを保存しました。", "保存完了",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
             }
         }
     }
