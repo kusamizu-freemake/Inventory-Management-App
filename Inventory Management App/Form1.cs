@@ -14,6 +14,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Threading;
+using System.Xml.Linq;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace Inventory_Management_App
@@ -121,7 +122,7 @@ namespace Inventory_Management_App
             }
 
             // テーブル作成
-            using (var Connectionn = new SqliteConnection(ConnectionString))
+            using (SqliteConnection Connectionn = new SqliteConnection(ConnectionString))
             {
                 Connectionn.Open();
                 string CreateTableQuery = @"
@@ -133,7 +134,7 @@ namespace Inventory_Management_App
                         Comment TEXT
                     )";
 
-                using (var Command = new SqliteCommand(CreateTableQuery, Connectionn))
+                using (SqliteCommand Command = new SqliteCommand(CreateTableQuery, Connectionn))
                 {
                     Command.ExecuteNonQuery();
                 }
@@ -144,14 +145,14 @@ namespace Inventory_Management_App
         {
             InventoryDataGridView.Rows.Clear();
 
-            using (var Connectionn = new SqliteConnection(ConnectionString))
+            using (SqliteConnection Connectionn = new SqliteConnection(ConnectionString))
             {
                 // 接続開始
                 Connectionn.Open();
-                string Query = "SELECT * FROM InventoryItems ORDER BY Id";
+                string SelectQuery = "SELECT * FROM InventoryItems ORDER BY Id";
 
-                using (var Command = new SqliteCommand(Query, Connectionn))
-                using (var Reader = Command.ExecuteReader())
+                using (SqliteCommand Command = new SqliteCommand(SelectQuery, Connectionn))
+                using (SqliteDataReader Reader = Command.ExecuteReader())
                 {
                     while (Reader.Read())
                     {
@@ -336,10 +337,30 @@ namespace Inventory_Management_App
         {
             // 削除確認ダイアログを表示
             var Result = MessageBox.Show("この行を削除しますか？", "確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            
+            // 
+            DataGridViewRow row = InventoryDataGridView.Rows[RowIndex];
             if (Result == DialogResult.Yes)
             {
-                InventoryDataGridView.Rows.RemoveAt(RowIndex);
+                // TagにIDがある場合は、DBからも削除
+                if (row.Tag != null && row.Tag is int id)
+                {
+                    using (SqliteConnection connection = new SqliteConnection(ConnectionString))
+                    {
+                        connection.Open();
+                        string deleteQuery = "DELETE FROM InventoryItems WHERE Id = @Id";
+
+                        using (SqliteCommand command = new SqliteCommand(deleteQuery, connection))
+                        {
+                            command.Parameters.AddWithValue("@Id", id);
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                }
+                InventoryDataGridView.Rows.RemoveAt(RowIndex); //DataGridViewから削除
                 UpdateRowBackgroundColors();
+
+                MessageBox.Show("削除しました。", "完了", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -428,40 +449,58 @@ namespace Inventory_Management_App
             // 「はい」が選択された場合のみ削除
             if (Result == DialogResult.Yes)
             {
-                // DataGridViewの全行を削除
+                // DBから全削除
+                using (SqliteConnection connection = new SqliteConnection(ConnectionString))
+                {
+                    connection.Open();
+                    string deleteQuery = "DELETE FROM InventoryItems";
+
+                    using (SqliteCommand command = new SqliteCommand(deleteQuery, connection))
+                    {
+                        command.ExecuteNonQuery();
+                    }
+                }
+
+                // DataGridViewをクリア
                 InventoryDataGridView.Rows.Clear();
+
+                MessageBox.Show("全てのデータをクリアしました。", "完了", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
             }
         }
 
         // 更新ボタンがクリックされたときの処理(DBに登録）
         private void UpdateButton_Click(object sender, EventArgs e)
         {
+            int UpdateCount = 0;
+            int InsertCount = 0;
             var Result = MessageBox.Show("DataGridViewの全データをデータベースに保存しますか？", "保存確認",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
             if (Result == DialogResult.Yes)
             {
-                using (var Connectionn = new SqliteConnection(ConnectionString))
+                using (SqliteConnection Connection = new SqliteConnection(ConnectionString))
                 {
                     // 接続開始
-                    Connectionn.Open();
+                    Connection.Open();
 
                     // トランザクション開始
-                    using (var Transaction = Connectionn.BeginTransaction())
+                    using (SqliteTransaction Transaction = Connection.BeginTransaction())
                     {
-                        // 既存データを全削除
-                        string DeleteQuery = "DELETE FROM InventoryItems";
-                        using (var DeleteCommand = new SqliteCommand(DeleteQuery, Connectionn, Transaction))
-                        {
-                            DeleteCommand.ExecuteNonQuery();
-                        }
+                        // UPDATE用クエリ（既存レコードを更新）
+                        string UpdateQuery = @"
+                                UPDATE InventoryItems
+                                SET IsChecked = @IsChecked,
+                                    Time = @Time,
+                                    Quantity = @Quantity,
+                                    Comment = @Comment
+                                WHERE Id = @Id";
 
-                        // DataGridViewの全データを挿入
+                        // INSERT用クエリ（新規レコードを挿入）
                         string InsertQuery = @"
                                     INSERT INTO InventoryItems (IsChecked, Time, Quantity, Comment)
                                     VALUES (@IsChecked, @Time, @Quantity, @Comment)";
 
-                        int SavedCount = 0;
 
                         foreach (DataGridViewRow row in InventoryDataGridView.Rows)
                         {
@@ -478,16 +517,35 @@ namespace Inventory_Management_App
                             // コメントを取得
                             string Comment = row.Cells[COLUMN_INDEX_COMMENT].Value.ToString();
 
-                            // データベースに挿入
-                            using (var insertCommand = new SqliteCommand(InsertQuery, Connectionn, Transaction))
+                            // 行のTagにIDがある場合はUPDATE、ない場合はINSERT
+                            if (row.Tag != null && row.Tag is int id)
                             {
-                                insertCommand.Parameters.AddWithValue("@IsChecked", IsChecked ? 1 : 0);
-                                insertCommand.Parameters.AddWithValue("@Time", Time);
-                                insertCommand.Parameters.AddWithValue("@Quantity", Quantity);
-                                insertCommand.Parameters.AddWithValue("@Comment", Comment);
+                                // 既存レコードを更新
+                                using (SqliteCommand updateCommand = new SqliteCommand(UpdateQuery, Connection, Transaction))
+                                {
+                                    updateCommand.Parameters.AddWithValue("@Id", id);
+                                    updateCommand.Parameters.AddWithValue("@IsChecked", IsChecked ? 1 : 0);
+                                    updateCommand.Parameters.AddWithValue("@Time", Time);
+                                    updateCommand.Parameters.AddWithValue("@Quantity", Quantity);
+                                    updateCommand.Parameters.AddWithValue("@Comment", Comment);
 
-                                insertCommand.ExecuteNonQuery();
-                                SavedCount++;
+                                    updateCommand.ExecuteNonQuery();
+                                    UpdateCount++;
+                                }
+                            }
+                            else
+                            {
+                                // 新規レコードを挿入
+                                using (SqliteCommand insertCommand = new SqliteCommand(InsertQuery, Connection, Transaction))
+                                {
+                                    insertCommand.Parameters.AddWithValue("@IsChecked", IsChecked ? 1 : 0);
+                                    insertCommand.Parameters.AddWithValue("@Time", Time);
+                                    insertCommand.Parameters.AddWithValue("@Quantity", Quantity);
+                                    insertCommand.Parameters.AddWithValue("@Comment", Comment);
+
+                                    insertCommand.ExecuteNonQuery();
+                                    InsertCount++;
+                                }
                             }
                         }
 
@@ -497,8 +555,6 @@ namespace Inventory_Management_App
                         // データを再読み込み
                         LoadDataFromDatabase();
 
-                        MessageBox.Show($"データベースに{SavedCount}件のデータを保存しました。", "保存完了",
-                            MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
             }
