@@ -132,35 +132,59 @@ namespace Inventory_Management_App
                     }
                 }
 
-
+                // テーブルの存在確認
                 if (!TableExists("InventoryItems"))
                 {
                     // テーブルが存在しない場合のみ作成
-                    CreateInventoryTable();
+                    bool TableCreate = CreateInventoryTable();
 
-                    // テーブル作成成功メッセージ
-                    MessageBox.Show(
+                    // テーブル作成結果に応じてメッセージを表示
+                    if (TableCreate)
+                    {
+                        // テーブル作成成功メッセージ
+                        MessageBox.Show(
                             "テーブル「InventoryItems」を作成しました。",
                             "テーブル作成完了",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Information
-                     );
+                        );
+                    }
+                    else
+                    {
+                        // テーブル作成失敗メッセージ
+                        MessageBox.Show(
+                            "テーブル「InventoryItems」の作成に失敗しました。",
+                            "エラー",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error
+                        );
+                    }
+                }
+                else
+                {
+                    // テーブルが既に存在する場合のメッセージ
+                    MessageBox.Show(
+                        "テーブル「InventoryItems」は既に存在します。",
+                        "既存しています",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information
+                    );
+                }
 
                     // DB生成確認
                     VerifyDatabaseCreation();
-
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        $"データベース初期化エラー:\n{ex.Message}",
+                        "エラー",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error
+                    );
                 }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    $"データベース初期化エラー:\n{ex.Message}",
-                    "エラー",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                );
-            }
-        }
+
 
         // テーブル存在確認メソッド
         private bool TableExists(string tableName)
@@ -189,14 +213,16 @@ namespace Inventory_Management_App
             }
         }
 
-        // InventoryItemsテーブルを作成
-        private void CreateInventoryTable()
+        // InventoryItemsテーブルを作成,bool型を返すように修正
+        private bool CreateInventoryTable()
         {
-            using (SqliteConnection Connection = new SqliteConnection(ConnectionString))
+            try
             {
-                Connection.Open();
+                using (SqliteConnection Connection = new SqliteConnection(ConnectionString))
+                {
+                    Connection.Open();
 
-                string CreateTableQuery = @"
+                    string CreateTableQuery = @"
                     CREATE TABLE InventoryItems (
                         Id INTEGER PRIMARY KEY AUTOINCREMENT,
                         IsChecked INTEGER NOT NULL DEFAULT 0,
@@ -205,11 +231,20 @@ namespace Inventory_Management_App
                         Comment TEXT
                     )";
 
-                using (SqliteCommand Command = new SqliteCommand(CreateTableQuery, Connection))
-                {
-                    Command.ExecuteNonQuery();
+                
+
+                    using (SqliteCommand Command = new SqliteCommand(CreateTableQuery, Connection))
+                    {
+                        Command.ExecuteNonQuery();
+                    }
                 }
+                return true; // 成功
             }
+            catch
+            {
+                return false; // 失敗
+            }
+
         }
 
         // データベースからデータを読み込む
