@@ -171,20 +171,19 @@ namespace Inventory_Management_App
                     );
                 }
 
-                    // DB生成確認
-                    VerifyDatabaseCreation();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(
-                        $"データベース初期化エラー:\n{ex.Message}",
-                        "エラー",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error
-                    );
-                }
+                // DB生成確認
+                VerifyDatabaseCreation();
             }
-
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"データベース初期化エラー:\n{ex.Message}",
+                    "エラー",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+            }
+        }
 
         // テーブル存在確認メソッド
         private bool TableExists(string tableName)
