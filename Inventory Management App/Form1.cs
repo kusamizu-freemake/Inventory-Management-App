@@ -160,19 +160,6 @@ namespace Inventory_Management_App
                         );
                     }
                 }
-                else
-                {
-                    // テーブルが既に存在する場合のメッセージ
-                    MessageBox.Show(
-                        "テーブル「InventoryItems」は既に存在します。",
-                        "既存しています",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information
-                    );
-                }
-
-                // DB生成確認
-                VerifyDatabaseCreation();
             }
             catch (Exception ex)
             {
@@ -674,52 +661,6 @@ namespace Inventory_Management_App
                     MessageBoxIcon.Error
                 );
                 }
-            }
-        }
-
-        // テーブルの存在確認メソッド(テーブルが存在しない場合のみ表示）
-        private void VerifyDatabaseCreation()
-        {
-            // DBファイルの存在確認
-            bool DbFileExists = File.Exists(DbPath);
-
-            // テーブルの存在確認
-            bool tableExists = TableExists("InventoryItems");
-
-            // 確認結果メッセージ
-            string DbStatus = DbFileExists ? "既存します。" : "存在しません。";
-            string TableStatus = tableExists ? "既存します。" : "存在しません。";
-            MessageBox.Show(
-               $"=== データベース生成確認 ===\n\n" +
-               $"DBファイル: {DbStatus}\n" +
-               $"保存場所:\n{DbPath}\n\n" +
-               $"テーブル: {TableStatus}",
-               "DB確認",
-               MessageBoxButtons.OK,
-               MessageBoxIcon.Information
-           );
-
-            // エラーチェック
-            if (!DbFileExists)
-            {
-                MessageBox.Show(
-                    "データベースファイルの作成に失敗しました。",
-                    "エラー",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                ); 
-                throw new Exception("データベースファイルの作成に失敗しました。");
-            }
-
-            if (!tableExists)
-            {
-                MessageBox.Show(
-                    "テーブルの作成に失敗しました。",
-                    "エラー",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                );
-                throw new Exception("テーブルの作成に失敗しました。");
             }
         }
     }
