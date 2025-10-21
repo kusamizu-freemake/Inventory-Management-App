@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.Data.Common;
+using System.Data.SqlClient;
 using System.Data.SQLite;
 using System.Drawing;
 using System.IO;
@@ -163,6 +164,9 @@ namespace Inventory_Management_App
             }
             catch (Exception ex)
             {
+                // デバッグ: エラー詳細
+                System.Diagnostics.Debug.WriteLine($"[ERROR] メッセージ: {ex.Message}");
+
                 MessageBox.Show(
                     $"データベース初期化エラー:\n{ex.Message}",
                     "エラー",
@@ -180,21 +184,29 @@ namespace Inventory_Management_App
                 using (SqliteConnection Connection = new SqliteConnection(ConnectionString))
                 {
                     Connection.Open();
+                    // デバッグ: 接続成功
+                    System.Diagnostics.Debug.WriteLine($"[DEBUG] DB接続成功: {ConnectionString}");
+
                     string CheckQuery = @"
-                        SELECT COUNT(*) 
-                        FROM sqlite_master 
-                        WHERE type='table' AND name=@TableName";
+                        SELECT name
+                        FROM sqlite_master
+                        WHERE type = 'table' 
+                        AND name = @TableName";
 
                     using (SqliteCommand Command = new SqliteCommand(CheckQuery, Connection))
                     {
                         Command.Parameters.AddWithValue("@TableName", tableName);
-                        long count = (long)Command.ExecuteScalar();
-                        return count > 0;
+                        object result = Command.ExecuteScalar();
+                        // result が null でなければテーブルは存在する
+                        return result != null;
+                        
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                // 失敗した場合は詳細をデバッグ出力して false を返す
+                System.Diagnostics.Debug.WriteLine($"[ERROR] CreateInventoryTable: {ex.Message}");
                 return false;
             }
         }
@@ -226,8 +238,10 @@ namespace Inventory_Management_App
                 }
                 return true; // 成功
             }
-            catch
+            catch (Exception ex)
             {
+                // 失敗した場合は詳細をデバッグ出力して false を返す
+                System.Diagnostics.Debug.WriteLine($"[ERROR] CreateInventoryTable: {ex.Message}");
                 return false; // 失敗
             }
 
