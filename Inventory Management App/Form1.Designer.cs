@@ -39,6 +39,7 @@ namespace Inventory_Management_App
             this.button3 = new System.Windows.Forms.Button();
             this.button4 = new System.Windows.Forms.Button();
             this.button5 = new System.Windows.Forms.Button();
+            this.button6 = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // label1
@@ -119,11 +120,21 @@ namespace Inventory_Management_App
             this.button5.Text = "クリア";
             this.button5.UseVisualStyleBackColor = true;
             // 
+            // button6
+            // 
+            this.button6.Location = new System.Drawing.Point(536, 30);
+            this.button6.Name = "button6";
+            this.button6.Size = new System.Drawing.Size(149, 30);
+            this.button6.TabIndex = 10;
+            this.button6.Text = "更新";
+            this.button6.UseVisualStyleBackColor = true;
+            // 
             // InventoryQuantityForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 656);
+            this.Controls.Add(this.button6);
             this.Controls.Add(this.button5);
             this.Controls.Add(this.button4);
             this.Controls.Add(this.button3);
@@ -151,6 +162,7 @@ namespace Inventory_Management_App
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.Button button4;
         private System.Windows.Forms.Button button5;
+        private System.Windows.Forms.Button button6;
     }
 }
 
