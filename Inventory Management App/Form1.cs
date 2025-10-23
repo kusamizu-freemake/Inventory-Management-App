@@ -215,7 +215,7 @@ namespace Inventory_Management_App
                         {
                             // デバッグ: エラー詳細
                             System.Diagnostics.Debug.WriteLine($"[ERROR] TableExists ExecuteScalar: {ex.Message}");
-                            return false;
+                            throw new Exception("テーブル存在確認クエリの実行に失敗しました。", ex); 
                         }
 
 
@@ -226,7 +226,7 @@ namespace Inventory_Management_App
             {
                 // 失敗した場合は詳細をデバッグ出力して false を返す
                 System.Diagnostics.Debug.WriteLine($"[ERROR] CreateInventoryTable: {ex.Message}");
-                return false;
+                throw new Exception("テーブル存在確認に失敗しました。", ex); 
             }
         }
 
