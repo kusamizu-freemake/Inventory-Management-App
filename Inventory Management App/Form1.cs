@@ -196,18 +196,29 @@ namespace Inventory_Management_App
                     using (SqliteCommand Command = new SqliteCommand(CheckQuery, Connection))
                     {
                         Command.Parameters.AddWithValue("@TableName", tableName);
-                        
-                        // 1. object型で宣言
-                        object result = Command.ExecuteScalar();
-                        // 2. nullチェック
-                        if (result != null)
+
+                        try
                         {
-                            return true;   // テーブルが存在
+                            // 1. object型で宣言
+                            object result = Command.ExecuteScalar();
+                            // 2. nullチェック
+                            if (result != null)
+                            {
+                                return true;   // テーブルが存在
+                            }
+                            else
+                            {
+                                return false;  // テーブルが存在しない
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            return false;  // テーブルが存在しない
+                            // デバッグ: エラー詳細
+                            System.Diagnostics.Debug.WriteLine($"[ERROR] TableExists ExecuteScalar: {ex.Message}");
+                            return false;
                         }
+
+
                     }
                 }
             }
