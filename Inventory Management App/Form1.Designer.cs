@@ -30,120 +30,120 @@ namespace Inventory_Management_App
         /// </summary>
         private void InitializeComponent()
         {
-            this.label1 = new System.Windows.Forms.Label();
-            this.button1 = new System.Windows.Forms.Button();
-            this.button2 = new System.Windows.Forms.Button();
-            this.textBox1 = new System.Windows.Forms.TextBox();
-            this.label2 = new System.Windows.Forms.Label();
-            this.textBox2 = new System.Windows.Forms.TextBox();
-            this.button3 = new System.Windows.Forms.Button();
-            this.button4 = new System.Windows.Forms.Button();
-            this.button5 = new System.Windows.Forms.Button();
-            this.button6 = new System.Windows.Forms.Button();
+            this.QuantityLabel = new System.Windows.Forms.Label();
+            this.PlusButton = new System.Windows.Forms.Button();
+            this.MinusButton = new System.Windows.Forms.Button();
+            this.CountTextBox = new System.Windows.Forms.TextBox();
+            this.TimeLabel = new System.Windows.Forms.Label();
+            this.CommentTextBox = new System.Windows.Forms.TextBox();
+            this.AddButton = new System.Windows.Forms.Button();
+            this.TotalQuantitySelectedButton = new System.Windows.Forms.Button();
+            this.ClearButton = new System.Windows.Forms.Button();
+            this.UpdateButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
-            // label1
+            // QuantityLabel
             // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(30, 30);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(37, 15);
-            this.label1.TabIndex = 0;
-            this.label1.Text = "数量";
+            this.QuantityLabel.AutoSize = true;
+            this.QuantityLabel.Location = new System.Drawing.Point(30, 30);
+            this.QuantityLabel.Name = "QuantityLabel";
+            this.QuantityLabel.Size = new System.Drawing.Size(37, 15);
+            this.QuantityLabel.TabIndex = 0;
+            this.QuantityLabel.Text = "数量";
             // 
-            // button1
+            // PlusButton
             // 
-            this.button1.Location = new System.Drawing.Point(200, 27);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(40, 27);
-            this.button1.TabIndex = 2;
-            this.button1.Text = "+";
-            this.button1.UseVisualStyleBackColor = true;
+            this.PlusButton.Location = new System.Drawing.Point(200, 27);
+            this.PlusButton.Name = "PlusButton";
+            this.PlusButton.Size = new System.Drawing.Size(40, 27);
+            this.PlusButton.TabIndex = 2;
+            this.PlusButton.Text = "+";
+            this.PlusButton.UseVisualStyleBackColor = true;
             // 
-            // button2
+            // MinusButton
             // 
-            this.button2.Location = new System.Drawing.Point(250, 27);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(40, 27);
-            this.button2.TabIndex = 3;
-            this.button2.Text = "-";
-            this.button2.UseVisualStyleBackColor = true;
+            this.MinusButton.Location = new System.Drawing.Point(250, 27);
+            this.MinusButton.Name = "MinusButton";
+            this.MinusButton.Size = new System.Drawing.Size(40, 27);
+            this.MinusButton.TabIndex = 3;
+            this.MinusButton.Text = "-";
+            this.MinusButton.UseVisualStyleBackColor = true;
             // 
-            // textBox1
+            // CountTextBox
             // 
-            this.textBox1.Location = new System.Drawing.Point(85, 28);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(100, 22);
-            this.textBox1.TabIndex = 1;
+            this.CountTextBox.Location = new System.Drawing.Point(85, 28);
+            this.CountTextBox.Name = "CountTextBox";
+            this.CountTextBox.Size = new System.Drawing.Size(100, 22);
+            this.CountTextBox.TabIndex = 1;
             // 
-            // label2
+            // TimeLabel
             // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(30, 65);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(0, 15);
-            this.label2.TabIndex = 4;
+            this.TimeLabel.AutoSize = true;
+            this.TimeLabel.Location = new System.Drawing.Point(30, 65);
+            this.TimeLabel.Name = "TimeLabel";
+            this.TimeLabel.Size = new System.Drawing.Size(0, 15);
+            this.TimeLabel.TabIndex = 4;
             // 
-            // textBox2
+            // CommentTextBox
             // 
-            this.textBox2.Location = new System.Drawing.Point(95, 56);
-            this.textBox2.Multiline = true;
-            this.textBox2.Name = "textBox2";
-            this.textBox2.Size = new System.Drawing.Size(145, 32);
-            this.textBox2.TabIndex = 5;
-            this.textBox2.Text = "コメント";
+            this.CommentTextBox.Location = new System.Drawing.Point(95, 56);
+            this.CommentTextBox.Multiline = true;
+            this.CommentTextBox.Name = "CommentTextBox";
+            this.CommentTextBox.Size = new System.Drawing.Size(145, 32);
+            this.CommentTextBox.TabIndex = 5;
+            this.CommentTextBox.Text = "コメント";
             // 
-            // button3
+            // AddButton
             // 
-            this.button3.Location = new System.Drawing.Point(250, 56);
-            this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(100, 30);
-            this.button3.TabIndex = 7;
-            this.button3.Text = "追加";
-            this.button3.UseVisualStyleBackColor = true;
+            this.AddButton.Location = new System.Drawing.Point(250, 56);
+            this.AddButton.Name = "AddButton";
+            this.AddButton.Size = new System.Drawing.Size(100, 30);
+            this.AddButton.TabIndex = 7;
+            this.AddButton.Text = "追加";
+            this.AddButton.UseVisualStyleBackColor = true;
             // 
-            // button4
+            // TotalQuantitySelectedButton
             // 
-            this.button4.Location = new System.Drawing.Point(200, 504);
-            this.button4.Name = "button4";
-            this.button4.Size = new System.Drawing.Size(173, 33);
-            this.button4.TabIndex = 8;
-            this.button4.Text = "選択された合計数量";
-            this.button4.UseVisualStyleBackColor = true;
+            this.TotalQuantitySelectedButton.Location = new System.Drawing.Point(200, 504);
+            this.TotalQuantitySelectedButton.Name = "TotalQuantitySelectedButton";
+            this.TotalQuantitySelectedButton.Size = new System.Drawing.Size(173, 33);
+            this.TotalQuantitySelectedButton.TabIndex = 8;
+            this.TotalQuantitySelectedButton.Text = "選択された合計数量";
+            this.TotalQuantitySelectedButton.UseVisualStyleBackColor = true;
             // 
-            // button5
+            // ClearButton
             // 
-            this.button5.Location = new System.Drawing.Point(33, 504);
-            this.button5.Name = "button5";
-            this.button5.Size = new System.Drawing.Size(117, 33);
-            this.button5.TabIndex = 9;
-            this.button5.Text = "クリア";
-            this.button5.UseVisualStyleBackColor = true;
+            this.ClearButton.Location = new System.Drawing.Point(33, 504);
+            this.ClearButton.Name = "ClearButton";
+            this.ClearButton.Size = new System.Drawing.Size(117, 33);
+            this.ClearButton.TabIndex = 9;
+            this.ClearButton.Text = "クリア";
+            this.ClearButton.UseVisualStyleBackColor = true;
             // 
-            // button6
+            // UpdateButton
             // 
-            this.button6.Location = new System.Drawing.Point(536, 30);
-            this.button6.Name = "button6";
-            this.button6.Size = new System.Drawing.Size(149, 30);
-            this.button6.TabIndex = 10;
-            this.button6.Text = "更新";
-            this.button6.UseVisualStyleBackColor = true;
+            this.UpdateButton.Location = new System.Drawing.Point(536, 30);
+            this.UpdateButton.Name = "UpdateButton";
+            this.UpdateButton.Size = new System.Drawing.Size(149, 30);
+            this.UpdateButton.TabIndex = 10;
+            this.UpdateButton.Text = "更新";
+            this.UpdateButton.UseVisualStyleBackColor = true;
             // 
             // InventoryQuantityForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 656);
-            this.Controls.Add(this.button6);
-            this.Controls.Add(this.button5);
-            this.Controls.Add(this.button4);
-            this.Controls.Add(this.button3);
-            this.Controls.Add(this.textBox2);
-            this.Controls.Add(this.label2);
-            this.Controls.Add(this.textBox1);
-            this.Controls.Add(this.button2);
-            this.Controls.Add(this.button1);
-            this.Controls.Add(this.label1);
+            this.Controls.Add(this.UpdateButton);
+            this.Controls.Add(this.ClearButton);
+            this.Controls.Add(this.TotalQuantitySelectedButton);
+            this.Controls.Add(this.AddButton);
+            this.Controls.Add(this.CommentTextBox);
+            this.Controls.Add(this.TimeLabel);
+            this.Controls.Add(this.CountTextBox);
+            this.Controls.Add(this.MinusButton);
+            this.Controls.Add(this.PlusButton);
+            this.Controls.Add(this.QuantityLabel);
             this.Name = "InventoryQuantityForm";
             this.Text = "Form1";
             this.ResumeLayout(false);
@@ -153,16 +153,16 @@ namespace Inventory_Management_App
 
         #endregion
 
-        private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.Button button1;
-        private System.Windows.Forms.Button button2;
-        private System.Windows.Forms.TextBox textBox1;
-        private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.TextBox textBox2;
-        private System.Windows.Forms.Button button3;
-        private System.Windows.Forms.Button button4;
-        private System.Windows.Forms.Button button5;
-        private System.Windows.Forms.Button button6;
+        private System.Windows.Forms.Label QuantityLabel;
+        private System.Windows.Forms.Button PlusButton;
+        private System.Windows.Forms.Button MinusButton;
+        private System.Windows.Forms.TextBox CountTextBox;
+        private System.Windows.Forms.Label TimeLabel;
+        private System.Windows.Forms.TextBox CommentTextBox;
+        private System.Windows.Forms.Button AddButton;
+        private System.Windows.Forms.Button TotalQuantitySelectedButton;
+        private System.Windows.Forms.Button ClearButton;
+        private System.Windows.Forms.Button UpdateButton;
     }
 }
 

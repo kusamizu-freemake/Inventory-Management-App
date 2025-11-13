@@ -1,67 +1,99 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Xml.Linq;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace Inventory_Management_App
 {
-    public partial class Form2 : Form
+    // 詳細情報フォーム
+    public partial class DetailForm2 : Form
     {
         // 画像を管理（現在は1枚のみ）
-        private PictureBox currentPictureBox = null;
+        private PictureBox CurrentPictureBox = null;
 
         // パネルを使用してスクロール可能にする
-        private Panel imagePanel;
+        private Panel ImagePanel;
 
-        //Form1から渡されたデータを受け取るコンストラクタ
-        public Form2(string time, string quantity, string comment)
+        // 画像サイズ制限（2MB）
+        private const int MaxImageSizeBytes = 2 * 1024 * 1024;
+
+        // InventoryItemのID（画像の関連付けに使用）!!!
+        private int? InventoryItemId;
+
+        // Form1から渡されたデータを受け取るコンストラクタ
+        public DetailForm2(string time, string quantity, string comment, int? itemId = null)
         {
-            // 画像表示用パネルの初期化
+            // コンポーネントの初期化
             InitializeComponent();
 
             // タイトルの設定
             this.Text = "詳細情報";
 
             // 渡されたデータをラベルに表示
-            label1.Text = $"時刻: {time}";
-            label2.Text = $"数量: {quantity}";
-            label3.Text = $"コメント: {comment}";
+            TimeLabel.Text = $"時刻: {time}";
+            QuantityLavel.Text = $"数量: {quantity}";
+            CommentLavel.Text = $"コメント: {comment}";
+
+            // InventoryItemIdを保存
+            InventoryItemId = itemId;
 
             // 画像表示用パネルの初期化
             InitializeImagePanel();
+
+            // データベースから画像を読み込む
+            LoadImageFromDatabase();
         }
 
         // 画像表示用パネルの初期化
         private void InitializeImagePanel()
         {
-            //
-            imagePanel = new Panel();
-            imagePanel.Location = new Point(140, 20);
-            imagePanel.Size = new Size(760, 280);
-            imagePanel.AutoScroll = false; // スクロール不要（1枚のみ）
-            imagePanel.BorderStyle = BorderStyle.FixedSingle;
-            this.Controls.Add(imagePanel);
+            ImagePanel = new Panel();
+            ImagePanel.Location = new Point(20, 80);
+            ImagePanel.Size = new Size(520, 280);
+            ImagePanel.AutoScroll = true; // スクロールを有効にする
+            ImagePanel.BorderStyle = BorderStyle.FixedSingle; // 枠線を追加
+            this.Controls.Add(ImagePanel); // フォームにパネルを追加
         }
-        // 画像を挿入するボタンを作成
+
+        // データベースから画像を読み込む（行IDに紐づく画像のみ）
+        private void LoadImageFromDatabase()
+        {
+            // InventoryItemIdがない場合は画像を読み込まない
+            if (!InventoryItemId.HasValue)
+            {
+                return; // 中止
+            }
+
+            try
+            {
+                // 共通メソッドを使用して画像を取得
+                var images = DatabaseHelper.LoadImagesForInventoryItem(InventoryItemId.Value);
+                if (images.Count > 0)
+                {
+                    AddImageToPanelFromImage(images[0]); // 最初の画像を表示
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"画像の読み込みに失敗しました: {ex.Message}", "エラー",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // 画像を挿入するボタンのイベント
         private void InsertImageButton_Click(object sender, EventArgs e)
         {
             // 既に画像がある場合は警告
-            if (currentPictureBox != null)
+            if (CurrentPictureBox != null)
             {
-                var result = MessageBox.Show("既に画像が挿入されています。新しい画像に置き換えますか？",
-                    "確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                DialogResult confirmResult = MessageBox.Show("既に画像が挿入されています。新しい画像に置き換えますか？","確認", 
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
-                if (result == DialogResult.No)
+                // ユーザーが「いいえ」を選択した場合は処理を中止
+                if (confirmResult != DialogResult.Yes)
                 {
-                    return;
+                    return; // 中止
                 }
 
                 // 既存の画像を削除
@@ -71,41 +103,56 @@ namespace Inventory_Management_App
             // OpenFileDialogを使用して画像ファイルを選択
             using (OpenFileDialog openFileDialog = new OpenFileDialog())
             {
-                openFileDialog.Title = "画像を選択";
-                openFileDialog.Filter = "画像ファイル (*.jpg;*.jpeg;*.png;*.bmp)|*.jpg;*.jpeg;*.png;*.bmp";
-                openFileDialog.Multiselect = false; // 1枚のみ選択
+                // ダイアログの設定
+                openFileDialog.Title = "画像を選択"; 
+                openFileDialog.Filter = "画像ファイル (*.jpg;*.jpeg;*.png;)|*.jpg;*.jpeg;*.png;";
+                openFileDialog.Multiselect = false; // 複数選択不可
+
+                // ダイアログを表示
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    foreach (string imagePath in openFileDialog.FileNames)
+                    // ファイルサイズチェック(2MBまで)
+                    FileInfo fileInfo = new FileInfo(openFileDialog.FileName);
+
+                    // サイズが制限を超えている場合は警告
+                    if (fileInfo.Length > MaxImageSizeBytes)
                     {
-                        AddImageToPanel(imagePath);
+                        MessageBox.Show($"画像ファイルのサイズが2MBを超えています。\n現在のサイズ: {fileInfo.Length / 1024.0 / 1024.0:F2}MB","エラー", 
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
                     }
+
+                    // 画像ファイルをImageとして読み込む
+                    Image image = Image.FromFile(openFileDialog.FileName);
+                    // パネルに画像を追加
+                    AddImageToPanelFromImage(image);
                 }
             }
         }
 
-        // パネルに画像を追加
-        private void AddImageToPanel(string imagePath)
+        // パネルにImageオブジェクトから画像を追加するメソッド
+        private void AddImageToPanelFromImage(Image image)
         {
             try
             {
-                // ピクチャーボックスを作成
-                PictureBox pictureBox = new PictureBox();
+                // PictureBoxを作成して画像を表示
+                PictureBox pictureBox = new PictureBox(); // 新しいPictureBoxを作成
+                pictureBox.SizeMode = PictureBoxSizeMode.Zoom; // サイズに合わせて拡大縮小
+                pictureBox.Location = new Point(100,20); // 
+                pictureBox.Size = new Size(Math.Min(ImagePanel.Width, image.Width), Math.Min(ImagePanel.Height, image.Height)); // パネル内に収まるサイズに調整
+                pictureBox.Anchor = AnchorStyles.Top | AnchorStyles.Left; // 左上に固定
+                pictureBox.Image = new Bitmap(image); // 画像を設定
 
-                // 画像を読み込む
-                Image originalImage = Image.FromFile(imagePath);
-
+                // 既存の画像があれば削除
+                RemoveCurrentImage();
 
                 // 現在の画像として保存
-                currentPictureBox = pictureBox;
-
-                // パネルに追加
-                imagePanel.Controls.Add(pictureBox);
-                pictureBox.Image = originalImage;
+                CurrentPictureBox = pictureBox;
+                ImagePanel.Controls.Add(pictureBox);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"画像の読み込みに失敗しました: {ex.Message}", "エラー",
+                MessageBox.Show($"画像の表示に失敗しました: {ex.Message}", "エラー", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -113,37 +160,84 @@ namespace Inventory_Management_App
         // 現在の画像を削除
         private void RemoveCurrentImage()
         {
-            if (currentPictureBox != null)
+            // 既存のPictureBoxがあれば削除
+            if (CurrentPictureBox != null)
             {
-                imagePanel.Controls.Remove(currentPictureBox);
-                currentPictureBox.Dispose();
-                currentPictureBox = null;
+                // パネルから削除してリソースを解放
+                ImagePanel.Controls.Remove(CurrentPictureBox); // パネルから削除
+                CurrentPictureBox.Image?.Dispose(); // 画像リソースを解放
+                CurrentPictureBox.Dispose(); // PictureBox自体を解放
+                CurrentPictureBox = null; // 参照をクリア
             }
         }
-
 
         // 画像を削除するボタンのイベント
         private void DeleteButton_Click(object sender, EventArgs e)
         {
-            if (currentPictureBox == null)
+            // 画像がない場合は警告
+            if (CurrentPictureBox == null)
             {
-                MessageBox.Show("削除する画像がありません。", "情報",
+                MessageBox.Show("削除する画像がありません。", "情報", 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            var result = MessageBox.Show("画像を削除しますか?", "確認",
+            DialogResult Result = MessageBox.Show("画像を削除しますか?", "確認", 
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
-            if (result == DialogResult.Yes)
+            // ユーザーが「はい」を選択した場合に削除
+            if (Result == DialogResult.Yes)
             {
-                RemoveCurrentImage();
+                RemoveCurrentImage(); // 画像を削除
             }
         }
 
-        // 画像を保存するボタンのイベント
+        // 画像を保存するボタンのイベント（共通メソッドを使用）
         private void SaveButton_Click(object sender, EventArgs e)
         {
+            // 画像がない場合は警告
+            if (CurrentPictureBox == null)
+            {
+                MessageBox.Show("保存する画像がありません。", "情報",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            // InventoryItemIdがない場合は警告
+            if (!InventoryItemId.HasValue)
+            {
+                MessageBox.Show("この行はまだデータベースに保存されていません。\nForm1の「更新」ボタンで保存してから、画像を登録してください。",
+                    "情報", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            try
+            {
+                // 画像をバイト配列に変換
+                byte[] imageData;
+
+                using (var ms = new MemoryStream())
+                {
+                    // PNG形式で保存
+                    CurrentPictureBox.Image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                    imageData = ms.ToArray();
+                }
+
+                // 共通メソッドを使用して保存 !変数名変更予定!
+                bool Success = DatabaseHelper.SaveImage(imageData, InventoryItemId);
+
+                if (Success)
+                {
+                    // 保存成功メッセージ
+                    MessageBox.Show("画像が正常に保存されました。", "情報",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"画像の保存に失敗しました: {ex.Message}", "エラー",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }
