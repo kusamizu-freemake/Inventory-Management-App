@@ -16,7 +16,17 @@ namespace Inventory_Management_App
         private Panel ImagePanel;
 
         // 画像サイズ制限（2MB）
-        private const int MaxImageSizeBytes = 2 * 1024 * 1024;
+        private const int MAX_IMAGES_SIZE_BYTES = 2 * 1024 * 1024;
+
+        // ImagePanelの位置・サイズ
+        private const int IMAGE_PANEL_X = 20;
+        private const int IMAGE_PANEL_Y = 80;
+        private const int IMAGE_PANEL_WIDTH = 520;
+        private const int IMAGE_PANEL_HEIGHT = 280;
+
+        // PictureBoxの位置
+        private const int PictureBoxX = 100;
+        private const int PictureBoxY = 20;
 
         // InventoryItemのID（画像の関連付けに使用）!!!
         private int? InventoryItemId;
@@ -49,8 +59,8 @@ namespace Inventory_Management_App
         private void InitializeImagePanel()
         {
             ImagePanel = new Panel();
-            ImagePanel.Location = new Point(20, 80);
-            ImagePanel.Size = new Size(520, 280);
+            ImagePanel.Location = new Point(IMAGE_PANEL_X, IMAGE_PANEL_Y);
+            ImagePanel.Size = new Size(IMAGE_PANEL_WIDTH, IMAGE_PANEL_HEIGHT);
             ImagePanel.AutoScroll = true; // スクロールを有効にする
             ImagePanel.BorderStyle = BorderStyle.FixedSingle; // 枠線を追加
             this.Controls.Add(ImagePanel); // フォームにパネルを追加
@@ -115,7 +125,7 @@ namespace Inventory_Management_App
                     FileInfo fileInfo = new FileInfo(openFileDialog.FileName);
 
                     // サイズが制限を超えている場合は警告
-                    if (fileInfo.Length > MaxImageSizeBytes)
+                    if (fileInfo.Length > MAX_IMAGES_SIZE_BYTES)
                     {
                         MessageBox.Show($"画像ファイルのサイズが2MBを超えています。\n現在のサイズ: {fileInfo.Length / 1024.0 / 1024.0:F2}MB","エラー", 
                             MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -138,7 +148,7 @@ namespace Inventory_Management_App
                 // PictureBoxを作成して画像を表示
                 PictureBox pictureBox = new PictureBox(); // 新しいPictureBoxを作成
                 pictureBox.SizeMode = PictureBoxSizeMode.Zoom; // サイズに合わせて拡大縮小
-                pictureBox.Location = new Point(100,20); // 
+                pictureBox.Location = new Point(PictureBoxX, PictureBoxY); // 定数を使用
                 pictureBox.Size = new Size(Math.Min(ImagePanel.Width, image.Width), Math.Min(ImagePanel.Height, image.Height)); // パネル内に収まるサイズに調整
                 pictureBox.Anchor = AnchorStyles.Top | AnchorStyles.Left; // 左上に固定
                 pictureBox.Image = new Bitmap(image); // 画像を設定
@@ -215,8 +225,8 @@ namespace Inventory_Management_App
             {
                 // 画像をバイト配列に変換
                 byte[] imageData;
-
-                using (var ms = new MemoryStream())
+                // MemoryStreamを使用して画像をバイト配列に変換
+                using (MemoryStream ms = new MemoryStream())
                 {
                     // PNG形式で保存
                     CurrentPictureBox.Image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
@@ -224,9 +234,9 @@ namespace Inventory_Management_App
                 }
 
                 // 共通メソッドを使用して保存 !変数名変更予定!
-                bool Success = DatabaseHelper.SaveImage(imageData, InventoryItemId);
+                bool ImageSaveResult = DatabaseHelper.SaveImage(imageData, InventoryItemId);
 
-                if (Success)
+                if (ImageSaveResult)
                 {
                     // 保存成功メッセージ
                     MessageBox.Show("画像が正常に保存されました。", "情報",

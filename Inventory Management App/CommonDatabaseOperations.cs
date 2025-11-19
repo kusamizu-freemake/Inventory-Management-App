@@ -59,36 +59,31 @@ namespace Inventory_Management_App
                 ConnectionString,
                 (connection, transaction) =>
                 {
-                    // 外部キー制約を有効化（トランザクションに関連付ける）
-                    using (var cmd = connection.CreateCommand())
-                    {
-                        cmd.CommandText = "PRAGMA foreign_keys = ON";
-                        cmd.Transaction = transaction;
-                        cmd.ExecuteNonQuery();
-                    }
 
-                    // InventoryItemsテーブル作成
+                    // InventoryItemsテーブル作成(在庫項目)
                     string createInventoryTableQuery = @"
                         CREATE TABLE IF NOT EXISTS InventoryItems ( 
-                            Id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                            Id INTEGER PRIMARY KEY AUTOINCREMENT,
                             IsChecked INTEGER NOT NULL DEFAULT 0, 
                             Time TEXT NOT NULL,
-                            Quantity INTEGER NOT NULL DEFAULT 0,
-                            Comment TEXT
+                            Quantity INTEGER NOT NULL DEFAULT 0, 
+                            Comment TEXT 
                         )";
 
                     // InventoryItemsテーブル作成
                     using (var command = connection.CreateCommand())
                     {
-                        command.Transaction = transaction; 
-                        command.CommandText = createInventoryTableQuery; 
-                        command.ExecuteNonQuery();
+                        command.Transaction = transaction; // トランザクションを関連付け 
+                        command.CommandText = createInventoryTableQuery;  // SQLコマンドを設定
+                        command.ExecuteNonQuery(); // コマンドを実行
                     }
 
-                    // Imagesテーブル作成(InventoryItemId外部キー付き)
+
+
+                    // Imagesテーブル作成(画像項目,InventoryItemId外部キー付き、ON DELETE CASCADEを定義)
                     string createImagesTableQuery = @"
                         CREATE TABLE IF NOT EXISTS Images (
-                            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            Id INTEGER PRIMARY KEY AUTOINCREMENT, 
                             InventoryItemId INTEGER,
                             ImageData BLOB NOT NULL,
                             CreatedAt TEXT NOT NULL,
@@ -102,6 +97,9 @@ namespace Inventory_Management_App
                         command.CommandText = createImagesTableQuery;
                         command.ExecuteNonQuery();
                     }
+
+                    
+
                 },
                 null  // 初期化時はメッセージ表示なし
             );
@@ -111,7 +109,7 @@ namespace Inventory_Management_App
         
         public static bool ExecuteWithTransaction(
             string connectionString,
-            Action<SqliteConnection, SqliteTransaction> action,
+            Action<SqliteConnection, SqliteTransaction> action, // 実行する処理
             string successMessage = null)
         {
             try
@@ -121,13 +119,13 @@ namespace Inventory_Management_App
                 {
                     connection.Open(); // 接続を開く
 
-                    // 外部キー制約を有効化（セッションレベル）
-                    using (var enableFK = connection.CreateCommand())
-                    {
-                        enableFK.CommandText = "PRAGMA foreign_keys = ON"; // 外部キー制約を有効化
-                        enableFK.ExecuteNonQuery();
-                    }
-
+                    // 外部キー制約を有効化（セッションレベル）→必須(ONにしないとON DELETE CASCADEが動かない(整合性が失われる）)
+                    //using (var enableFK = connection.CreateCommand())
+                    //{
+                    //    enableFK.CommandText = "PRAGMA foreign_keys = ON"; // 外部キー制約を有効化
+                    //    enableFK.ExecuteNonQuery(); // コマンドを実行
+                    //}
+                    
                     using (var transaction = connection.BeginTransaction())
                     {
                         try
@@ -179,7 +177,9 @@ namespace Inventory_Management_App
         public static bool ExecuteReader(
             string connectionString, // 接続文字列
             string query, // SQLクエリ
-            Action<SqliteDataReader> readerAction) // データリーダー処理
+            Action<SqliteDataReader> readerAction, // データリーダー処理アクション
+            Action<SqliteCommand> parameterSetter = null // パラメータ設定アクション（省略可）
+            ) 
         {
             try
             {
@@ -192,6 +192,7 @@ namespace Inventory_Management_App
                     using (var command = connection.CreateCommand())
                     {
                         command.CommandText = query; // SQLクエリを設定
+                        parameterSetter?.Invoke((SqliteCommand)command); // パラメータを設定（必要な場合）
 
                         // データリーダーを取得
                         using (var reader = command.ExecuteReader())
@@ -209,73 +210,48 @@ namespace Inventory_Management_App
                     "エラー",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
-                return false;
-            }
-        }
-
-        // パラメータ付きSQLコマンドを実行してデータを取得する共通メソッド（SELECT用）
-        
-        public static bool ExecuteReaderWithParameters(
-            string connectionString, // 接続文字列
-            string query, // SQLクエリ
-            Action<SqliteCommand> parameterSetter, // パラメータ設定アクション
-            Action<SqliteDataReader> readerAction) // データリーダー処理アクション
-        {
-            try
-            {
-                //  データベース接続を開く
-                using (var connection = new SqliteConnection(connectionString))
-                {
-                    connection.Open();
-                    // SQLコマンドを作成して実行
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.CommandText = query; // SQLクエリを設定
-                        // parameterSetter は SqliteCommand を期待
-                        parameterSetter?.Invoke((SqliteCommand)command); // パラメータを設定
-                        using (var reader = command.ExecuteReader()) // データリーダーを取得
-                        {
-                            readerAction(reader); // データリーダー処理を実行
-                        }
-                    }
-                }
-                return true; // 成功
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    $"データの取得に失敗しました: {ex.Message}",
-                    "エラー",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-                return false;
+                return false; // 失敗
             }
         }
 
         // 単一のSQLコマンドを実行する（INSERT/UPDATE/DELETE用）
-        
+
         public static bool ExecuteNonQuery(
             string connectionString,
             string query,
             Action<SqliteCommand> parameters = null, // パラメータ設定アクション
             string successMessage = null) // 成功メッセージ
         {
-            // トランザクション内で実行
-            return ExecuteWithTransaction(
-                connectionString,
-                (connection, transaction) =>
+            try
+            {
+                using (var connection = new SqliteConnection(connectionString))
                 {
-                    // SQLコマンドを作成して実行
+                    connection.Open();
                     using (var command = connection.CreateCommand())
                     {
-                        command.Transaction = transaction; // トランザクションを関連付け
                         command.CommandText = query; // SQLクエリを設定
                         parameters?.Invoke((SqliteCommand)command); // パラメータを設定
                         command.ExecuteNonQuery(); // コマンドを実行
                     }
-                },
-                successMessage // 成功メッセージ
-            );
+                }
+
+
+                if (!string.IsNullOrEmpty(successMessage))
+                    MessageBox.Show(successMessage, "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                return true;
+            }
+
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"データベース操作に失敗しました: {ex.Message}",
+                    "エラー",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return false;
+            }
+           
         }
 
         // InventoryItemsテーブルの全データを保存する
@@ -289,10 +265,11 @@ namespace Inventory_Management_App
             out int InsertedCount,
             out int UpdatedCount)
         {
-            int Inserted = 0;
-            int Updated = 0;
+            int Inserted = 0; // 挿入件数カウンタ
+            int Updated = 0;  // 更新件数カウンタ
 
-            bool Success = ExecuteWithTransaction(
+            // トランザクション内で保存処理を実行
+            bool TransactionSucceeded = ExecuteWithTransaction(
                 ConnectionString,
                 (connection, transaction) =>
                 {
@@ -324,7 +301,7 @@ namespace Inventory_Management_App
                         string Comment = row.Cells[ColumnIndexComment].Value?.ToString() ?? "";
 
                         // 既存データの更新 or 新規挿入
-                        if (row.Tag != null && row.Tag is int id)
+                        if (row.Tag is int id)
                         {
                             // 更新処理
                             using (var UpdateCommand = connection.CreateCommand())
@@ -364,32 +341,25 @@ namespace Inventory_Management_App
 
             InsertedCount = Inserted; // 挿入件数を出力パラメータに設定
             UpdatedCount = Updated; // 更新件数を出力パラメータに設定
-            return Success; // 全体の成功状態を返す
+            return TransactionSucceeded; // 全体の成功状態を返す
         }
 
         // 画像データをデータベースに保存する
         
         public static bool SaveImage(byte[] imageData, int? inventoryItemId = null)
         {
-            return ExecuteWithTransaction(
+            return ExecuteNonQuery(
                 ConnectionString,
-                (connection, transaction) =>
+                @"INSERT INTO Images (InventoryItemId, ImageData, CreatedAt) 
+                  VALUES (@InventoryItemId, @ImageData, @CreatedAt)",
+                
+                (command) =>
                 {
-                    string InsertQuery = @"
-                        INSERT INTO Images (InventoryItemId, ImageData, CreatedAt) 
-                        VALUES (@InventoryItemId, @ImageData, @CreatedAt)";
-
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.Transaction = transaction;
-                        command.CommandText = InsertQuery;
-                        var cmd = (SqliteCommand)command;
-                        cmd.Parameters.AddWithValue("@InventoryItemId",
-                            inventoryItemId.HasValue ? (object)inventoryItemId.Value : DBNull.Value);
-                        cmd.Parameters.AddWithValue("@ImageData", imageData);
-                        cmd.Parameters.AddWithValue("@CreatedAt", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                        cmd.ExecuteNonQuery();
-                    }
+                    var cmd = (SqliteCommand)command;
+                    cmd.Parameters.AddWithValue("@InventoryItemId",
+                        inventoryItemId.HasValue ? (object)inventoryItemId.Value : DBNull.Value);
+                    cmd.Parameters.AddWithValue("@ImageData", imageData);
+                    cmd.Parameters.AddWithValue("@CreatedAt", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                 },
                 "画像をデータベースに保存しました。"
             );
@@ -403,29 +373,29 @@ namespace Inventory_Management_App
             List<Image> images = new List<Image>();
 
             // データベースから画像データを取得
-            ExecuteReaderWithParameters(
+            ExecuteReader(
                 ConnectionString,
                 "SELECT ImageData FROM Images WHERE InventoryItemId = @InventoryItemId ORDER BY CreatedAt DESC", // SQLクエリ
-                (command) =>
+                // データリーダー処理
+                (reader) =>
                 {
-                    // パラメータを設定
-                    command.Parameters.AddWithValue("@InventoryItemId", inventoryItemId);
-                },
-                (reader) => // データリーダー処理
-                {
-                    // 画像データを読み込み
                     while (reader.Read())
                     {
-                        // BLOBデータを取得
+                        // 画像データをバイト配列として取得
                         byte[] imageData = (byte[])reader["ImageData"];
                         // バイト配列からImageオブジェクトを作成
-                        using (var ms = new MemoryStream(imageData))
+                        using (MemoryStream ms = new MemoryStream(imageData))
                         {
                             Image img = Image.FromStream(ms); // 元のImageオブジェクト
                             Image clonedImage = new Bitmap(img); // クローンを作成
                             images.Add(clonedImage); // クローンをリストに追加
                         }
                     }
+                },
+                // パラメータ設定
+                (command) =>
+                {
+                    command.Parameters.AddWithValue("@InventoryItemId", inventoryItemId); 
                 }
             );
 
@@ -505,8 +475,7 @@ namespace Inventory_Management_App
             return ExecuteNonQuery(
                 ConnectionString,
                 "DELETE FROM InventoryItems WHERE Id = @Id",
-                (command) => command.Parameters.AddWithValue("@Id", id),
-                null
+                cmd => cmd.Parameters.AddWithValue("@Id", id)
             );
         }
     }

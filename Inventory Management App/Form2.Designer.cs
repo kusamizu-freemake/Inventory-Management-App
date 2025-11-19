@@ -22,7 +22,7 @@ namespace Inventory_Management_App
             }
             base.Dispose(disposing);
         }
-        
+
 
         #region Windows Form Designer generated code
 

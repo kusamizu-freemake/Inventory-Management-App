@@ -32,8 +32,6 @@ namespace Inventory_Management_App
         private int CurrentAmount = DEFAULT_CURRENT_AMOUNT;
 
         // 時刻
-        //private DispatcherTimer timer;
-        // ↓修正案
         private System.Windows.Forms.Timer timer; // WinForms用タイマー
 
         // 在庫リスト表示用DataGridView
@@ -46,18 +44,6 @@ namespace Inventory_Management_App
             // 初期値を設定,数値→文字形式に変換
             CountTextBox.Text = DEFAULT_CURRENT_AMOUNT.ToString();
 
-            // タイマのインスタンスを生成
-            //timer = new DispatcherTimer();
-            //// 1秒ごとにイベントを発生させます。
-            //timer.Interval = TimeSpan.FromSeconds(1);
-            //// タイマーのTickイベントにTimer_Tickメソッドを関連付け
-            //// timer.Tick:イベント
-            //// Timer_Tick:メソッド
-            //timer.Tick += Timer_Tick;
-            //// timerをスタートさせます。
-            //timer.Start();
-
-            //↓修正案(問題なければ、こちらを採用。上記は削除する予定）
             //タイマーのインスタンスを生成（WinForms.Timerを使用）
             timer = new System.Windows.Forms.Timer();
              timer.Interval = 1000; // 1秒（ミリ秒）
