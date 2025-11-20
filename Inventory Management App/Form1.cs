@@ -1,28 +1,17 @@
 ﻿using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Data;
-using System.Data.Common;
-using System.Data.SqlClient;
-using System.Data.SQLite;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Reflection.Emit;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Threading;
-using System.Xml.Linq;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace Inventory_Management_App
 {
     public partial class InventoryQuantityForm : Form
     {
-
         // 定数の設定
         // 最大値の設定
         private const int MAX_CURRENT_AMOUNT = 9999;
@@ -37,273 +26,56 @@ namespace Inventory_Management_App
         private const int COLUMN_INDEX_QUANTITY = 2;
         private const int COLUMN_INDEX_COMMENT = 3;
         private const int COLUMN_INDEX_DELETE = 4;
+        private const int COLUMN_INDEX_DETAIL = 5; // 詳細ボタン列
 
         // 現在の数量を保持する変数
         private int CurrentAmount = DEFAULT_CURRENT_AMOUNT;
 
         // 時刻
-        private DispatcherTimer timer;
+        private System.Windows.Forms.Timer timer; // WinForms用タイマー
 
         // 在庫リスト表示用DataGridView
         private DataGridView InventoryDataGridView;
-
-        // データベース初期化
-        private string DbPath;
-        private string ConnectionString;
 
         public InventoryQuantityForm()
         {
             InitializeComponent();
 
             // 初期値を設定,数値→文字形式に変換
-            textBox1.Text = DEFAULT_CURRENT_AMOUNT.ToString();
+            CountTextBox.Text = DEFAULT_CURRENT_AMOUNT.ToString();
 
+            //タイマーのインスタンスを生成（WinForms.Timerを使用）
+            timer = new System.Windows.Forms.Timer();
+             timer.Interval = 1000; // 1秒（ミリ秒）
+             timer.Tick += Timer_Tick;
+             timer.Start();
 
-            // タイマのインスタンスを生成
-            timer = new DispatcherTimer();
-            // 1秒ごとにイベントを発生させます。
-            timer.Interval = TimeSpan.FromSeconds(1);
-            // タイマーのTickイベントにTimer_Tickメソッドを関連付け
-            // timer.Tick:イベント
-            // Timer_Tick:メソッド
-            timer.Tick += Timer_Tick;
-            // timerをスタートさせます。
-            timer.Start();
-
-            // button1（+ボタン）のイベント設定
-            button1.Click += PlusButton_Click;
-
-            // button2（-ボタン）のイベント設定
-            button2.Click += MinusButton_Click;
-
-            // テキストボックスの手入力対応
-            textBox1.Leave += TextBox1_Leave; // フォーカスが外れた時
+            // イベント設定
+            PlusButton.Click += PlusButton_Click; // +ボタン
+            MinusButton.Click += MinusButton_Click; // -ボタン
+            CountTextBox.Leave += TextBox1_Leave; // フォーカスが外れた時
+            AddButton.Click += AddButton_Click; // 追加ボタン
+            TotalQuantitySelectedButton.Click += TotalQuantity_Click; // 合計数量ボタン
+            ClearButton.Click += ClearButton_Click; // クリアボタン
+            UpdateButton.Click += UpdateButton_Click; // 更新ボタン
 
             // 3桁区切りのカンマ付きで表示
             CommaValue();
 
-            // button3（追加ボタン）のイベント設定
-            button3.Click += AddButton_Click;
-
-            // 合計数量ボタンの設定
-            button4.Click += TotalQuantity_Click;
-
-            // リストビューの設定
+            // リストビュー（DataGridView）の設定
             SetupInventoryDataGridView();
 
-            // 合計数量ボタンの設定
-            button5.Click += ClearButton_Click;
-
-            // 更新ボタンの設定
-            button6.Click += UpdateButton_Click;
-
             // データベース初期化
-            InitializeDatabase();
+            DatabaseHelper.InitializeDatabase();
 
             // DBからデータを読み込んで表示
             LoadDataFromDatabase();
-
-        }
-
-        // データベース初期化
-        private void InitializeDatabase()
-        {
-            try
-            {
-                // データベースファイルのパス設定
-                DbPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "InventoryData.db"
-                );
-                ConnectionString = $"Data Source={DbPath};";
-
-                // データベースファイルが存在しない場合のみ作成
-                if (File.Exists(DbPath) == false)
-                {
-                    // 空ファイルを作成
-                    using (File.Create(DbPath))
-                    {
-                        // DB作成成功メッセージ
-                        MessageBox.Show(
-                            $"データベースファイルを作成しました。{DbPath}",
-                            "DB作成完了",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Information
-                        );
-                    }
-                }
-
-                // テーブルの存在確認
-                if (!TableExists("InventoryItems"))
-                {
-                    // テーブルが存在しない場合のみ作成
-                    bool TableCreate = CreateInventoryTable();
-
-                    // テーブル作成結果に応じてメッセージを表示
-                    if (TableCreate)
-                    {
-                        // テーブル作成成功メッセージ
-                        MessageBox.Show(
-                            "テーブル「InventoryItems」を作成しました。",
-                            "テーブル作成完了",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Information
-                        );
-                    }
-                    else
-                    {
-                        // テーブル作成失敗メッセージ
-                        MessageBox.Show(
-                            "テーブル「InventoryItems」の作成に失敗しました。",
-                            "エラー",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error
-                        );
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // デバッグ: エラー詳細
-                System.Diagnostics.Debug.WriteLine($"[ERROR] メッセージ: {ex.Message}");
-
-                MessageBox.Show(
-                    $"データベース初期化エラー:\n{ex.Message}",
-                    "エラー",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                );
-            }
-        }
-
-        // テーブル存在確認メソッド
-        private bool TableExists(string tableName)
-        {
-            try
-            {
-                using (SqliteConnection Connection = new SqliteConnection(ConnectionString))
-                {
-                    Connection.Open();
-                    // デバッグ: 接続成功
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG] DB接続成功: {ConnectionString}");
-
-                    string CheckQuery = @"
-                        SELECT name
-                        FROM sqlite_master
-                        WHERE type = 'table' 
-                        AND name = @TableName";
-
-                    using (SqliteCommand Command = new SqliteCommand(CheckQuery, Connection))
-                    {
-                        Command.Parameters.AddWithValue("@TableName", tableName);
-
-                        try
-                        {
-                            // 1. object型で宣言
-                            object result = Command.ExecuteScalar();
-                            // 2. nullチェック
-                            if (result != null)
-                            {
-                                return true;   // テーブルが存在
-                            }
-                            else
-                            {
-                                return false;  // テーブルが存在しない
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            // デバッグ: エラー詳細
-                            System.Diagnostics.Debug.WriteLine($"[ERROR] TableExists ExecuteScalar: {ex.Message}");
-                            throw new Exception("テーブル存在確認クエリの実行に失敗しました。", ex); 
-                        }
-
-
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // 失敗した場合は詳細をデバッグ出力して false を返す
-                System.Diagnostics.Debug.WriteLine($"[ERROR] CreateInventoryTable: {ex.Message}");
-                throw new Exception("テーブル存在確認に失敗しました。", ex); 
-            }
-        }
-
-        // InventoryItemsテーブルを作成,bool型を返すように修正
-        private bool CreateInventoryTable()
-        {
-            try
-            {
-                using (SqliteConnection Connection = new SqliteConnection(ConnectionString))
-                {
-                    Connection.Open();
-
-                    string CreateTableQuery = @"
-                    CREATE TABLE InventoryItems (
-                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        IsChecked INTEGER NOT NULL DEFAULT 0,
-                        Time TEXT NOT NULL,
-                        Quantity INTEGER NOT NULL,
-                        Comment TEXT
-                    )";
-
-                
-
-                    using (SqliteCommand Command = new SqliteCommand(CreateTableQuery, Connection))
-                    {
-                        Command.ExecuteNonQuery();
-                    }
-                }
-                return true; // 成功
-            }
-            catch (Exception ex)
-            {
-                // 失敗した場合は詳細をデバッグ出力して false を返す
-                System.Diagnostics.Debug.WriteLine($"[ERROR] CreateInventoryTable: {ex.Message}");
-                return false; // 失敗
-            }
-
         }
 
         // データベースからデータを読み込む
         private void LoadDataFromDatabase()
         {
-            InventoryDataGridView.Rows.Clear();
-
-            using (SqliteConnection Connectionn = new SqliteConnection(ConnectionString))
-            {
-                // 接続開始
-                Connectionn.Open();
-                string SelectQuery = "SELECT * FROM InventoryItems ORDER BY Id";
-
-                using (SqliteCommand Command = new SqliteCommand(SelectQuery, Connectionn))
-                using (SqliteDataReader Reader = Command.ExecuteReader())
-                {
-                    while (Reader.Read())
-                    {
-                        int Id = Reader.GetInt32(0);
-                        bool IsChecked = Reader.GetInt32(1) == 1;
-                        string Time = Reader.GetString(2);
-                        int Quantity = Reader.GetInt32(3);
-                        string Comment = Reader.IsDBNull(4) ? "" : Reader.GetString(4);
-
-                        // DataGridViewに行を追加
-                        int RowIndex = InventoryDataGridView.Rows.Add(
-                            IsChecked,
-                            Time,
-                            Quantity.ToString("N0"),
-                            Comment,
-                            ""
-                        );
-
-                        // 行のTagにIDを保存
-                        InventoryDataGridView.Rows[RowIndex].Tag = Id;
-                    }
-                }
-            }
-
-            // 背景色を更新
+            DatabaseHelper.LoadInventoryDataToGridView(InventoryDataGridView);
             UpdateRowBackgroundColors();
         }
 
@@ -314,7 +86,6 @@ namespace Inventory_Management_App
             if (CurrentAmount < MAX_CURRENT_AMOUNT)
             {
                 CurrentAmount++;
-                textBox1.Text = CurrentAmount.ToString(); // 変換
                 CommaValue();
             }
         }
@@ -323,23 +94,19 @@ namespace Inventory_Management_App
         private void MinusButton_Click(object sender, EventArgs e)
         {
             // 数量を1ずつ減らす、最小値は0（負の値にはならない）
-
             if (CurrentAmount > MIN_CURRENT_AMOUNT)
             {
                 CurrentAmount--;
-                textBox1.Text = CurrentAmount.ToString(); // 変換
                 CommaValue();
             }
-
         }
 
         // テキストボックスからフォーカスが外れた時の処理
         private void TextBox1_Leave(object sender, EventArgs e)
         {
             // カンマを除去して数値のみを取得
-            string InputText = textBox1.Text.Replace(",", "");
+            string InputText = CountTextBox.Text.Replace(",", "");
 
-            // 数値に変換できるか確認
             if (int.TryParse(InputText, out int InputAmount))
             {
                 // 0から9999の範囲に制限
@@ -368,13 +135,13 @@ namespace Inventory_Management_App
         private void CommaValue()
         {
             // 3桁区切りのカンマ付きで表示
-            textBox1.Text = CurrentAmount.ToString("N0");
+            CountTextBox.Text = CurrentAmount.ToString("N0");
         }
 
         // タイマー表示
         private void Timer_Tick(object sender, EventArgs e)
         {
-            label2.Text = DateTime.Now.ToString("HH:mm:ss");
+            TimeLabel.Text = DateTime.Now.ToString("HH:mm:ss");
         }
 
         // DataGridの設定
@@ -434,6 +201,15 @@ namespace Inventory_Management_App
             deleteColumn.Width = 100;
             InventoryDataGridView.Columns.Add(deleteColumn);
 
+            // 詳細ボタン列
+            DataGridViewButtonColumn detailColumn = new DataGridViewButtonColumn();
+            detailColumn.HeaderText = "詳細";
+            detailColumn.Name = "Detail";
+            detailColumn.Text = "詳細";
+            detailColumn.UseColumnTextForButtonValue = true;
+            detailColumn.Width = 100;
+            InventoryDataGridView.Columns.Add(detailColumn);
+
             // イベント登録
             InventoryDataGridView.CellContentClick += InventoryDataGridView_CellContentClick;
 
@@ -441,7 +217,7 @@ namespace Inventory_Management_App
             this.Controls.Add(InventoryDataGridView);
         }
 
-        // ListViewのクリックイベント
+        // DataGridView のクリックイベント
         private void InventoryDataGridView_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
 
@@ -456,38 +232,58 @@ namespace Inventory_Management_App
                 InventoryDataGridView.EndEdit(); // チェックボックスの状態を確定(編集モードを終了)
                 UpdateRowBackgroundColors();
             }
+            // 詳細ボタンがクリックされた場合
+            else if (e.ColumnIndex == COLUMN_INDEX_DETAIL)
+            {
+                DetailRow(e.RowIndex);
+            }
         }
 
-        // 削除メソッドを追加
+        // 削除メソッド（DBからも削除）
         private void DeleteRow(int RowIndex)
         {
-            // 削除確認ダイアログを表示
-            DialogResult Result = MessageBox.Show("この行を削除しますか？", "確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            
-            // 
-            DataGridViewRow row = InventoryDataGridView.Rows[RowIndex];
+            DialogResult Result = MessageBox.Show("この行を削除しますか？\n※データベースからも削除されます。","確認", 
+                                    MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
             if (Result == DialogResult.Yes)
             {
-                // TagにIDがある場合は、DBからも削除
-                if (row.Tag != null && row.Tag is int id)
-                {
-                    using (SqliteConnection connection = new SqliteConnection(ConnectionString))
-                    {
-                        connection.Open();
-                        string deleteQuery = "DELETE FROM InventoryItems WHERE Id = @Id";
+                DataGridViewRow row = InventoryDataGridView.Rows[RowIndex];
 
-                        using (SqliteCommand command = new SqliteCommand(deleteQuery, connection))
-                        {
-                            command.Parameters.AddWithValue("@Id", id);
-                            command.ExecuteNonQuery();
-                        }
+                // Tagの取得を安全に行う　!!!
+                int? ItemId = row.Tag is int id ? id : (int?)null;
+
+                // データベースに保存済みの行の場合は、DBからも削除
+                if (ItemId.HasValue)
+                {
+                    // DB削除処理 !変数名変更!
+                    bool Success = DatabaseHelper.DeleteInventoryItem(ItemId.Value);
+                    if (!Success)
+                    {
+                        // DB削除に失敗したら処理を中止
+                        return;
                     }
                 }
-                InventoryDataGridView.Rows.RemoveAt(RowIndex); //DataGridViewから削除
-                UpdateRowBackgroundColors();
 
-                MessageBox.Show("削除しました。", "完了", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                InventoryDataGridView.Rows.RemoveAt(RowIndex); // DataGridViewから行を削除
+                UpdateRowBackgroundColors(); // 行の背景色を更新
             }
+        }
+
+        // 詳細ボタン
+        private void DetailRow(int RowIndex)
+        {
+            // 行データを取得 ??について
+            DataGridViewRow row = InventoryDataGridView.Rows[RowIndex];
+            string time = row.Cells[COLUMN_INDEX_TIME].Value?.ToString() ?? "";
+            string quantity = row.Cells[COLUMN_INDEX_QUANTITY].Value?.ToString() ?? "";
+            string comment = row.Cells[COLUMN_INDEX_COMMENT].Value?.ToString() ?? "";
+
+            // 行のIDを取得（画像表示のため）!!!
+            int? inventoryItemId = row.Tag is int id ? id : (int?)null;
+
+            // 詳細フォームを表示
+            Form detailForm = new DetailForm2(time, quantity, comment, inventoryItemId);
+            detailForm.Show();
         }
 
         // 在庫追加ボタン
@@ -498,14 +294,14 @@ namespace Inventory_Management_App
             // 現在時刻を取得
             string CurrentTime = DateTime.Now.ToString("HH:mm:ss");
             // 数量を取得
-            string Quantity = CurrentAmount.ToString("N0"); // カンマ付き
+            string Quantity = CurrentAmount.ToString("N0");
             // コメントを取得
-            string Comment = textBox2.Text;
+            string Comment = CommentTextBox.Text;
             // 削除を取得
             string Delete = "";
 
             // DataGridViewに新しい行を追加
-            InventoryDataGridView.Rows.Add(CheckBoxValue, CurrentTime, Quantity, Comment, Delete);
+            int RowIndex = InventoryDataGridView.Rows.Add(CheckBoxValue, CurrentTime, Quantity, Comment, Delete);
 
             // 行の背景色を更新
             UpdateRowBackgroundColors();
@@ -516,29 +312,29 @@ namespace Inventory_Management_App
         {
             for (int i = 0; i < InventoryDataGridView.Rows.Count; i++)
             {
+                // 各行を取得
                 DataGridViewRow Row = InventoryDataGridView.Rows[i];
 
-                // 合計計算に含めるかどうかを示すチェックボックスの値を取得
+                // // 合計計算に含めるかどうかを示すチェックボックスの値を取得
                 bool IncludedInTotal = Row.Cells[COLUMN_INDEX_CHECKBOX].Value is bool CheckBoxcellValue && CheckBoxcellValue;
 
                 // 選択済み（合計計算に含まれる行）
                 if (IncludedInTotal)
                 {
-                    Row.DefaultCellStyle.BackColor = Color.LightGreen;  // 緑色
+                    Row.DefaultCellStyle.BackColor = Color.LightGreen; // 緑色
                 }
                 // 偶数行（0, 2, 4...）
                 else if (i % 2 == 0)
                 {
-                    Row.DefaultCellStyle.BackColor = Color.White;  // 白色（背景色なし）
+                    Row.DefaultCellStyle.BackColor = Color.White; // 白色（背景色なし）
                 }
                 // 奇数行（1, 3, 5...）
                 else
                 {
-                    Row.DefaultCellStyle.BackColor = Color.LightBlue;  // 青色
+                    Row.DefaultCellStyle.BackColor = Color.LightBlue; // 青色
                 }
             }
         }
-
 
         // 合計数量ボタンがクリックされたときの処理
         private void TotalQuantity_Click(object sender, EventArgs e)
@@ -548,7 +344,7 @@ namespace Inventory_Management_App
 
             foreach (DataGridViewRow row in InventoryDataGridView.Rows)
             {
-                // この行を合計計算に含めるかどうかを判定
+                // チェックボックスの値を取得
                 bool IncludedInTotal = row.Cells[COLUMN_INDEX_CHECKBOX].Value is bool CheckBoxcellValue && CheckBoxcellValue;
 
                 if (IncludedInTotal)
@@ -563,139 +359,83 @@ namespace Inventory_Management_App
                 }
             }
             // 合計数量をメッセージボックスで表示
-            MessageBox.Show($"選択された合計数量: {TotalOfCheckedRows:N0}", "合計数量", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show($"選択された合計数量: {TotalOfCheckedRows:N0}", "合計数量",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         // クリアボタンがクリックされたときの処理
         private void ClearButton_Click(object sender, EventArgs e)
         {
             // 削除確認ダイアログを表示
-            DialogResult Result = MessageBox.Show("データをクリアしますか？", "確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            
+            DialogResult Result = MessageBox.Show(
+                "すべてのデータをクリアしますか？\n※データベースからも完全に削除されます。",
+                "確認",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+
             // 「はい」が選択された場合のみ削除
             if (Result == DialogResult.Yes)
             {
-                // DBから全削除
-                using (SqliteConnection Connection = new SqliteConnection(ConnectionString))
+                // データベースからも全データを削除 !変数名変更!
+                bool Success = DatabaseHelper.ClearAllInventoryItems();
+
+                // DataGridViewから全データを削除
+                if (Success)
                 {
-                    Connection.Open();
-                    string DeleteQuery = "DELETE FROM InventoryItems";
-
-                    using (SqliteCommand command = new SqliteCommand(DeleteQuery, Connection))
-                    {
-                        command.ExecuteNonQuery();
-                    }
+                    InventoryDataGridView.Rows.Clear();
                 }
-
-                // DataGridViewをクリア
-                InventoryDataGridView.Rows.Clear();
-
-                MessageBox.Show("全てのデータをクリアしました。", "完了", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
             }
         }
 
         // 更新ボタンがクリックされたときの処理(DBに登録）
         private void UpdateButton_Click(object sender, EventArgs e)
         {
+            DialogResult Result = MessageBox.Show("DataGridViewの全データをデータベースに保存しますか？", "保存確認", 
+                                    MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
-            DialogResult Result = MessageBox.Show("DataGridViewの全データをデータベースに保存しますか？", "保存確認",
-                MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-
+            // 「はい」が選択された場合のみ保存
             if (Result == DialogResult.Yes)
             {
-                try
+                // DataGridViewのデータをDBに保存(挿入・更新)
+                int InsertedCount;
+                int UpdatedCount;
+                List<int> NewInsertedIds; // 追加: 新規挿入されたIDリスト
+
+                // 保存処理 !変数名変更!
+                bool Success = DatabaseHelper.SaveInventoryItems(
+                    InventoryDataGridView,
+                    COLUMN_INDEX_CHECKBOX,
+                    COLUMN_INDEX_TIME,
+                    COLUMN_INDEX_QUANTITY,
+                    COLUMN_INDEX_COMMENT,
+                    out InsertedCount,
+                    out UpdatedCount,
+                    out NewInsertedIds // 追加: 新規挿入されたIDリスト
+                );
+
+                // 保存成功時の処理
+                if (Success)
                 {
-                    using (SqliteConnection Connection = new SqliteConnection(ConnectionString))
+                    // 新規挿入された行に Tag を設定
+                    int newIdIndex = 0;
+                    for (int i = 0; i < InventoryDataGridView.Rows.Count; i++)
                     {
-                        // 接続開始
-                        Connection.Open();
+                        DataGridViewRow row = InventoryDataGridView.Rows[i];
 
-                        // トランザクション開始
-                        using (SqliteTransaction Transaction = Connection.BeginTransaction())
+                        if (!(row.Tag is int))  // Tagが未設定 = 新規挿入行
                         {
-                            // UPDATE用クエリ（既存レコードを更新）
-                            string UpdateQuery = @"
-                                    UPDATE InventoryItems
-                                    SET IsChecked = @IsChecked,
-                                        Time = @Time,
-                                        Quantity = @Quantity,
-                                        Comment = @Comment
-                                    WHERE Id = @Id";
-
-                            // INSERT用クエリ（新規レコードを挿入）
-                            string InsertQuery = @"
-                                        INSERT INTO InventoryItems (IsChecked, Time, Quantity, Comment)
-                                        VALUES (@IsChecked, @Time, @Quantity, @Comment)";
-
-
-                            foreach (DataGridViewRow row in InventoryDataGridView.Rows)
+                            if (newIdIndex < NewInsertedIds.Count)
                             {
-                                // チェックボックスの値を取得
-                                bool IsChecked = row.Cells[COLUMN_INDEX_CHECKBOX].Value is bool checkValue && checkValue;
-
-                                // 時刻を取得
-                                string Time = row.Cells[COLUMN_INDEX_TIME].Value.ToString() ?? DateTime.Now.ToString("HH:mm:ss");
-
-                                // 数量を取得（カンマを除去して数値に変換）
-                                string QuantityText = row.Cells[COLUMN_INDEX_QUANTITY].Value.ToString()?.Replace(",", "");
-                                int Quantity = int.TryParse(QuantityText, out int qty) ? qty : 0;
-
-                                // コメントを取得
-                                string Comment = row.Cells[COLUMN_INDEX_COMMENT].Value.ToString();
-
-                                // 行のTagにIDがある場合はUPDATE、ない場合はINSERT
-                                if (row.Tag != null && row.Tag is int id)
-                                {
-                                    // 既存レコードを更新
-                                    using (SqliteCommand UpdateCommand = new SqliteCommand(UpdateQuery, Connection, Transaction))
-                                    {
-                                        UpdateCommand.Parameters.AddWithValue("@Id", id);
-                                        UpdateCommand.Parameters.AddWithValue("@IsChecked", IsChecked ? 1 : 0);
-                                        UpdateCommand.Parameters.AddWithValue("@Time", Time);
-                                        UpdateCommand.Parameters.AddWithValue("@Quantity", Quantity);
-                                        UpdateCommand.Parameters.AddWithValue("@Comment", Comment);
-
-                                        UpdateCommand.ExecuteNonQuery();
-
-                                    }
-                                }
-                                else
-                                {
-                                    // 新規レコードを挿入
-                                    using (SqliteCommand InsertCommand = new SqliteCommand(InsertQuery, Connection, Transaction))
-                                    {
-                                        InsertCommand.Parameters.AddWithValue("@IsChecked", IsChecked ? 1 : 0);
-                                        InsertCommand.Parameters.AddWithValue("@Time", Time);
-                                        InsertCommand.Parameters.AddWithValue("@Quantity", Quantity);
-                                        InsertCommand.Parameters.AddWithValue("@Comment", Comment);
-
-                                        InsertCommand.ExecuteNonQuery();
-
-                                    }
-                                }
+                                row.Tag = NewInsertedIds[newIdIndex];  // IDを設定
+                                newIdIndex++;
                             }
-
-                            // コミット
-                            Transaction.Commit();
-
-                            // データを再読み込み
-                            LoadDataFromDatabase();
                         }
                     }
-                }
-                catch (Exception ex)
-                {
-                    // 
-                    MessageBox.Show(
-                    $"データ読込エラー:\n{ex.Message}",
-                    "エラー",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                );
+                    // 背景色を更新
+                    UpdateRowBackgroundColors();
+
                 }
             }
         }
     }
 }
-
