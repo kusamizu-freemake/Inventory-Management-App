@@ -399,6 +399,8 @@ namespace Inventory_Management_App
                 // DataGridViewのデータをDBに保存(挿入・更新)
                 int InsertedCount;
                 int UpdatedCount;
+                List<int> NewInsertedIds; // 追加: 新規挿入されたIDリスト
+
                 // 保存処理 !変数名変更!
                 bool Success = DatabaseHelper.SaveInventoryItems(
                     InventoryDataGridView,
@@ -407,16 +409,31 @@ namespace Inventory_Management_App
                     COLUMN_INDEX_QUANTITY,
                     COLUMN_INDEX_COMMENT,
                     out InsertedCount,
-                    out UpdatedCount
+                    out UpdatedCount,
+                    out NewInsertedIds // 追加: 新規挿入されたIDリスト
                 );
 
                 // 保存成功時の処理
                 if (Success)
                 {
-                    // 保存後、DBの最新データでリロードする（Tagもここでセットされる）
-                    LoadDataFromDatabase();
-                    MessageBox.Show($"保存完了", "保存完了",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    // 新規挿入された行に Tag を設定
+                    int newIdIndex = 0;
+                    for (int i = 0; i < InventoryDataGridView.Rows.Count; i++)
+                    {
+                        DataGridViewRow row = InventoryDataGridView.Rows[i];
+
+                        if (!(row.Tag is int))  // Tagが未設定 = 新規挿入行
+                        {
+                            if (newIdIndex < NewInsertedIds.Count)
+                            {
+                                row.Tag = NewInsertedIds[newIdIndex];  // IDを設定
+                                newIdIndex++;
+                            }
+                        }
+                    }
+                    // 背景色を更新
+                    UpdateRowBackgroundColors();
+
                 }
             }
         }

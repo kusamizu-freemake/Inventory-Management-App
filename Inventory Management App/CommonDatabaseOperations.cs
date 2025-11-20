@@ -119,13 +119,13 @@ namespace Inventory_Management_App
                 {
                     connection.Open(); // 接続を開く
 
-                    // 外部キー制約を有効化（セッションレベル）→必須(ONにしないとON DELETE CASCADEが動かない(整合性が失われる）)
-                    //using (var enableFK = connection.CreateCommand())
-                    //{
-                    //    enableFK.CommandText = "PRAGMA foreign_keys = ON"; // 外部キー制約を有効化
-                    //    enableFK.ExecuteNonQuery(); // コマンドを実行
-                    //}
-                    
+                    //外部キー制約を有効化（セッションレベル）→必須(ONにしないとON DELETE CASCADEが動かない(整合性が失われる）)
+                    using (var enableFK = connection.CreateCommand())
+                    {
+                        enableFK.CommandText = "PRAGMA foreign_keys = ON"; // 外部キー制約を有効化
+                        enableFK.ExecuteNonQuery(); // コマンドを実行
+                    }
+
                     using (var transaction = connection.BeginTransaction())
                     {
                         try
@@ -188,6 +188,13 @@ namespace Inventory_Management_App
                 {
                     connection.Open();
 
+                    // 外部キー制約を有効化
+                    using (var enableFK = connection.CreateCommand())
+                    {
+                        enableFK.CommandText = "PRAGMA foreign_keys = ON";
+                        enableFK.ExecuteNonQuery();
+                    }
+
                     // SQLコマンドを作成して実行
                     using (var command = connection.CreateCommand())
                     {
@@ -227,6 +234,14 @@ namespace Inventory_Management_App
                 using (var connection = new SqliteConnection(connectionString))
                 {
                     connection.Open();
+
+                    //外部キー制約を有効化
+                    using (var enableFK = connection.CreateCommand())
+                    {
+                        enableFK.CommandText = "PRAGMA foreign_keys = ON"; // 外部キー制約を有効化
+                        enableFK.ExecuteNonQuery(); // コマンドを実行
+                    }
+
                     using (var command = connection.CreateCommand())
                     {
                         command.CommandText = query; // SQLクエリを設定
@@ -263,10 +278,12 @@ namespace Inventory_Management_App
             int ColumnIndexQuantity,
             int ColumnIndexComment,
             out int InsertedCount,
-            out int UpdatedCount)
+            out int UpdatedCount,
+            out List<int> NewInsertedIds) // 新規挿入されたIDリストを出力
         {
             int Inserted = 0; // 挿入件数カウンタ
             int Updated = 0;  // 更新件数カウンタ
+            List<int> InsertedIds = new List<int>(); // 新規挿入されたIDリスト
 
             // トランザクション内で保存処理を実行
             bool TransactionSucceeded = ExecuteWithTransaction(
@@ -332,6 +349,19 @@ namespace Inventory_Management_App
                                 ic.Parameters.AddWithValue("@Comment", Comment);
                                 ic.ExecuteNonQuery();
                             }
+
+                            // 新規挿入されたIDを取得
+                            using (var getIdCommand = connection.CreateCommand())
+                            {
+                                getIdCommand.Transaction = transaction;
+                                getIdCommand.CommandText = "SELECT last_insert_rowid();";
+                                object lastId = getIdCommand.ExecuteScalar();
+                                if (lastId != null && long.TryParse(lastId.ToString(), out long insertedId))
+                                {
+                                    InsertedIds.Add((int)insertedId); // IDをリストに追加
+                                }
+                            }
+
                             Inserted++;
                         }
                     }
@@ -341,6 +371,7 @@ namespace Inventory_Management_App
 
             InsertedCount = Inserted; // 挿入件数を出力パラメータに設定
             UpdatedCount = Updated; // 更新件数を出力パラメータに設定
+            NewInsertedIds = InsertedIds; // 新規挿入されたIDリストを出力パラメータに設定
             return TransactionSucceeded; // 全体の成功状態を返す
         }
 
